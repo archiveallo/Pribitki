@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моє Село — Громада Полісся | Медіа-Портал</title>
+    <title>Моє Село — Громада Полісся | Спадщина Предків</title>
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Libraries -->
+    <!-- CSS & Frameworks -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    
-    <!-- Swiper.js (for ColorWay Slider) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
+    
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -38,151 +37,321 @@
 
     <style>
         body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
         .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(212, 160, 23, 0.1); }
         
-        /* Swiper Customization */
-        .swiper-button-next, .swiper-button-prev { color: #D4A017 !important; background: rgba(0,0,0,0.5); width: 50px; height: 50px; border-radius: 50%; border: 1px solid rgba(212, 160, 23, 0.3); backdrop-filter: blur(10px); }
-        .swiper-button-next:after, .swiper-button-prev:after { font-size: 20px !important; font-weight: bold; }
-        
-        /* Video Card Reels Style */
-        .video-card { aspect-ratio: 9/16; border-radius: 1.5rem; overflow: hidden; position: relative; cursor: pointer; transition: 0.4s; }
-        .video-card:hover { transform: translateY(-10px); }
-        .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 50%; display: flex; items-center; justify-center; opacity: 0; transition: 0.3s; }
-        .video-card:hover .play-btn { opacity: 1; }
+        /* Village Cards Premium Effects */
+        .village-card { perspective: 1200px; }
+        .card-inner { transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; border-radius: 2.5rem; }
+        .village-card:hover .card-inner { transform: translateY(-15px) rotateX(4deg) rotateY(2deg); border-color: #D4A017; box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8); }
+        .village-card:active .card-inner { transform: scale(0.94); }
+        .card-img-wrap { overflow: hidden; border-radius: 2rem; position: relative; }
+        .card-img-wrap img { transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .village-card:hover .card-img-wrap img { transform: scale(1.2); }
 
-        .ann-marquee { animation: scroll-left 35s linear infinite; }
+        /* Swiper ColorWay Style */
+        .swiper-button-next, .swiper-button-prev { color: #D4A017 !important; background: rgba(0,0,0,0.5); width: 45px; height: 45px; border-radius: 50%; border: 1px solid rgba(212, 160, 23, 0.2); }
+        .swiper-button-next:after, .swiper-button-prev:after { font-size: 18px !important; font-weight: bold; }
+        .video-reels-card { aspect-ratio: 9/16; border-radius: 2rem; overflow: hidden; cursor: pointer; transition: 0.4s; border: 1px solid rgba(255,255,255,0.05); }
+        .video-reels-card:hover { transform: scale(1.02); border-color: #D4A017; }
+
+        /* Text Effects */
+        .text-glow { text-shadow: 0 0 30px rgba(212, 160, 23, 0.4); }
+        .ann-marquee { animation: scroll-left 40s linear infinite; }
         @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
+        
+        #pano-canvas { width: 100%; height: 600px; border-radius: 3rem; cursor: grab; background: #000; }
         [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="mainApp">
-
-    <!-- Modal for Video Player -->
-    <div x-show="openVideo" x-cloak class="fixed inset-0 z-[1000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-xl">
-        <button @click="openVideo = false" class="absolute top-10 right-10 text-white text-4xl">&times;</button>
-        <div class="w-full max-w-5xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl">
-            <iframe id="modal-iframe" class="w-full h-full" :src="videoUrl" frameborder="0" allowfullscreen></iframe>
-        </div>
-    </div>
+    <div class="noise-bg"></div>
 
     <!-- Announcement Bar -->
-    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-gold-accent text-forest-deep py-2 overflow-hidden border-b border-black/10">
-        <div class="flex whitespace-nowrap gap-20 ann-marquee font-black uppercase text-[10px]">
+    <div x-show="announcements.length" class="fixed top-0 w-full z-[120] bg-gold-accent text-forest-deep py-2 overflow-hidden border-b border-black/10 shadow-2xl">
+        <div class="flex whitespace-nowrap gap-20 ann-marquee font-black uppercase tracking-tighter text-[11px]">
             <template x-for="ann in announcements">
-                <span>📢 <span x-text="ann.title"></span>: <span x-text="ann.text" class="font-bold opacity-80"></span></span>
+                <span>📢 <span x-text="ann.title"></span>: <span x-text="ann.text"></span></span>
             </template>
         </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-[100] px-6 py-12 transition-all duration-500" id="main-nav">
-        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full">
-            <div class="flex items-center gap-3 cursor-pointer" @click="location.reload()">
-                <div class="w-10 h-10 bg-gold-accent rounded-full flex items-center justify-center font-extrabold text-forest-deep">МС</div>
-                <span class="text-xl font-serif font-bold text-gold-accent uppercase">Моє Село</span>
+    <!-- Header Navigation -->
+    <nav class="fixed w-full z-[110] px-6 py-12 transition-all duration-500" id="main-nav">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-10 py-4 rounded-full">
+            <div class="flex items-center gap-4 cursor-pointer" @click="location.reload()">
+                <div class="w-12 h-12 bg-gold-accent rounded-full flex items-center justify-center font-black text-forest-deep text-xl">МС</div>
+                <span class="text-2xl font-serif font-bold text-gold-accent uppercase tracking-tighter">Моє Село</span>
             </div>
-            <div class="hidden md:flex gap-8 text-[11px] font-bold uppercase tracking-widest">
-                <a href="#vr-tour" class="hover:text-gold-accent">3D Тур</a>
-                <a href="#gallery" class="hover:text-gold-accent">Галерея</a>
-                <a href="#videos" class="hover:text-gold-accent">Відео</a>
-                <a x-show="isAdmin" href="admin.html" class="text-red-400">⚙️ Панель</a>
+            
+            <div class="hidden lg:flex gap-10 text-[11px] uppercase tracking-[0.3em] font-extrabold">
+                <a href="#villages" class="hover:text-gold-accent transition-all">Громада</a>
+                <a href="#geology" class="hover:text-gold-accent transition-all">Кряж</a>
+                <a href="#videos" class="hover:text-gold-accent transition-all">Life-Відео</a>
+                <a href="#museum" class="hover:text-gold-accent transition-all">Музей</a>
+                <a x-show="isAdmin" href="admin.html" class="text-red-400 bg-red-400/10 px-4 py-1 rounded-full animate-pulse border border-red-400/20">⚙️ Адмін</a>
             </div>
-            <button @click="user ? logout() : login()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-[10px] uppercase">
-                <span x-text="user ? 'Вийти' : 'Увійти'"></span>
-            </button>
+
+            <div class="flex items-center gap-4">
+                <button @click="user ? logout() : login()" class="bg-gold-accent text-forest-deep px-8 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">
+                    <span x-text="user ? 'Вийти' : 'Увійти'"></span>
+                </button>
+                <template x-if="user">
+                    <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-gold-accent shadow-2xl">
+                </template>
+            </div>
         </div>
     </nav>
 
-    <!-- Hero -->
+    <!-- Hero Section (The Cinematic One) -->
     <section class="relative h-screen flex items-center justify-center overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-forest-deep"></div>
-        <div class="text-center z-10 px-4">
-            <h1 class="text-7xl md:text-[140px] font-serif font-bold text-white leading-none tracking-tighter">Спадщина <br> <span class="text-gold-accent italic">Предків</span></h1>
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=90&w=2000" class="w-full h-full object-cover scale-110 opacity-40 parallax-bg">
+            <div class="absolute inset-0 bg-gradient-to-b from-forest-deep/20 via-forest-deep/60 to-forest-deep"></div>
+        </div>
+
+        <div class="relative z-10 text-center px-4">
+            <h2 class="text-gold-accent font-serif italic text-3xl mb-6 hero-reveal opacity-0">Містичне Полісся</h2>
+            <h1 class="text-7xl md:text-[160px] font-serif font-bold mb-8 text-white text-glow hero-reveal opacity-0 tracking-tighter leading-none">
+                Спадщина <br> <span class="text-gold-accent italic">Предків</span>
+            </h1>
+            <p class="max-w-2xl mx-auto text-xl text-gray-300 hero-reveal opacity-0 leading-relaxed font-light">
+                Там, де Словечансько-Овруцький кряж зустрічає небо, а древні ліси бережуть пам'ять віків. Громада, що об'єднує серця.
+            </p>
+            <div class="mt-14 hero-reveal opacity-0">
+                <a href="#villages" class="inline-block border-2 border-gold-accent/40 text-gold-accent px-14 py-5 rounded-full font-black uppercase tracking-[0.4em] text-[10px] hover:bg-gold-accent hover:text-forest-deep transition-all backdrop-blur-md">Дослідити Села</a>
+            </div>
+        </div>
+        <div id="particles" class="absolute inset-0 pointer-events-none"></div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-24 bg-forest-deep border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+            <div class="stat-item">
+                <div class="text-6xl font-serif font-bold text-gold-accent mb-2" data-count="4">0</div>
+                <div class="text-[11px] uppercase tracking-[0.3em] font-bold text-gray-500">Села Громади</div>
+            </div>
+            <div class="stat-item">
+                <div class="text-6xl font-serif font-bold text-gold-accent mb-2" data-count="575">0</div>
+                <div class="text-[11px] uppercase tracking-[0.3em] font-bold text-gray-500">Мешканців</div>
+            </div>
+            <div class="stat-item">
+                <div class="text-6xl font-serif font-bold text-gold-accent mb-2" data-count="780">0</div>
+                <div class="text-[11px] uppercase tracking-[0.3em] font-bold text-gray-500">Років Історії</div>
+            </div>
+            <div class="stat-item">
+                <div class="text-6xl font-serif font-bold text-gold-accent mb-2" data-count="12">0</div>
+                <div class="text-[11px] uppercase tracking-[0.3em] font-bold text-gray-500">Пам'яток</div>
+            </div>
         </div>
     </section>
 
-    <!-- NEW: VIDEO SLIDER (COLORWAY STYLE) -->
-    <section id="videos" class="py-32 bg-forest-deep">
+    <!-- Villages Section (Advanced Cards) -->
+    <section id="villages" class="py-40 bg-forest-dark relative">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-serif text-white mb-4">Життя Громади</h2>
-                <div class="w-20 h-1 bg-gold-accent mx-auto"></div>
+            <div class="text-center mb-24">
+                <h2 class="text-6xl font-serif text-white uppercase tracking-tighter">Наші Села</h2>
+                <div class="w-24 h-1 bg-gold-accent mx-auto mt-6"></div>
             </div>
-
-            <div class="relative group">
-                <div class="swiper videoSwiper">
-                    <div class="swiper-wrapper">
-                        <template x-for="v in videos">
-                            <div class="swiper-slide">
-                                <div class="video-card glass-card p-1" @click="playVideo(v.ytId)">
-                                    <img :src="'https://img.youtube.com/vi/' + v.ytId + '/maxresdefault.jpg'" class="w-full h-full object-cover rounded-3xl">
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
-                                    <div class="play-btn">
-                                        <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5v13l13-6.5-13-6.5z"/></svg>
-                                    </div>
-                                    <div class="absolute bottom-6 left-6 right-6">
-                                        <p class="text-[9px] font-bold text-gold-accent uppercase mb-1" x-text="v.village"></p>
-                                        <h4 class="text-sm font-bold text-white leading-tight" x-text="v.title"></h4>
-                                    </div>
-                                </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
+                <template x-for="v in villages">
+                    <a :href="'village.html?v=' + v.id" class="village-card group block h-[550px]">
+                        <div class="card-inner glass-card p-3 h-full flex flex-col">
+                            <div class="card-img-wrap h-2/3">
+                                <img :src="v.img" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-gradient-to-t from-forest-deep to-transparent opacity-60"></div>
                             </div>
-                        </template>
+                            <div class="p-8">
+                                <h3 class="text-3xl font-serif text-white mb-3" x-text="v.name"></h3>
+                                <p class="text-xs text-gray-400 leading-relaxed font-medium" x-text="v.desc"></p>
+                            </div>
+                        </div>
+                    </a>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <!-- Geology Section (Back from Original) -->
+    <section id="geology" class="py-40 bg-forest-deep relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-24 items-center">
+            <div class="relative">
+                <div class="absolute -top-10 -left-10 w-64 h-64 border border-gold-accent/20 rounded-full animate-pulse"></div>
+                <img src="https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&q=80&w=1000" class="rounded-[4rem] shadow-2xl relative z-10 border border-white/10" alt="Ridge">
+                <div class="absolute -bottom-10 -right-10 glass-card p-10 rounded-[3rem] z-20 max-w-sm shadow-2xl border-gold-accent/20">
+                    <h4 class="text-gold-accent font-serif text-2xl mb-4 italic">Пірофіліт</h4>
+                    <p class="text-xs text-gray-300 leading-loose">Унікальний "восковий камінь" Словечансько-Овруцького кряжу, що зустрічається лише тут. Камінь, що пам'ятає вічність.</p>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-5xl md:text-7xl font-serif text-white mb-10 tracking-tighter">Словечансько-<br><span class="text-gold-accent">Овруцький Кряж</span></h2>
+                <p class="text-gray-300 text-xl mb-10 leading-relaxed font-light">Наші села розташовані на унікальному геологічному утворенні. Це залишок прадавніх гір, яким понад 1.5 мільярда років.</p>
+                <div class="space-y-6">
+                    <div class="flex items-center gap-6 group">
+                        <div class="w-12 h-12 rounded-2xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent group-hover:bg-gold-accent group-hover:text-forest-deep transition-all font-bold">01</div>
+                        <p class="text-lg text-gray-400 font-medium">Рідкісні види рослин льодовикового періоду.</p>
+                    </div>
+                    <div class="flex items-center gap-6 group">
+                        <div class="w-12 h-12 rounded-2xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent group-hover:bg-gold-accent group-hover:text-forest-deep transition-all font-bold">02</div>
+                        <p class="text-lg text-gray-400 font-medium">Поклади пірофілітового сланцю — каменю життя.</p>
+                    </div>
+                    <div class="flex items-center gap-6 group">
+                        <div class="w-12 h-12 rounded-2xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent group-hover:bg-gold-accent group-hover:text-forest-deep transition-all font-bold">03</div>
+                        <p class="text-lg text-gray-400 font-medium">Кришталево чисті джерела крізь товщу кварциту.</p>
                     </div>
                 </div>
-                <!-- Navigation Arrows -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Reels (ColorWay Style) -->
+    <section id="videos" class="py-32 bg-forest-dark overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 text-center mb-20">
+            <h2 class="text-5xl font-serif text-white tracking-tighter uppercase">Життя Громади</h2>
+            <p class="text-gold-accent font-bold uppercase tracking-widest text-xs mt-4 italic">LifeStream Хроніки</p>
+        </div>
+        <div class="px-6 relative">
+            <div class="swiper videoSwiper !overflow-visible">
+                <div class="swiper-wrapper">
+                    <template x-for="v in videos">
+                        <div class="swiper-slide">
+                            <div class="video-reels-card glass-card p-1.5" @click="playVideo(v.ytId)">
+                                <img :src="'https://img.youtube.com/vi/' + v.ytId + '/maxresdefault.jpg'" class="w-full h-full object-cover rounded-[1.8rem]">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+                                    <span class="text-[9px] font-black text-gold-accent uppercase mb-2 tracking-widest" x-text="v.village"></span>
+                                    <h4 class="text-sm font-bold text-white leading-tight uppercase" x-text="v.title"></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
                 <div class="swiper-button-next"></div>
                 <div class="swiper-button-prev"></div>
             </div>
         </div>
     </section>
 
-    <!-- PHOTO GALLERY WITH FILTERS -->
-    <section id="gallery" class="py-32 bg-forest-dark" x-data="{ activeFilter: 'all' }">
-        <div class="max-w-7xl mx-auto px-6">
-            <h2 class="text-5xl font-serif text-white text-center mb-16">Світлини Пам'яті</h2>
-            
-            <!-- Filters -->
-            <div class="flex flex-wrap justify-center gap-3 mb-16">
-                <button @click="activeFilter = 'all'" :class="activeFilter === 'all' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Усі фото</button>
-                <button @click="activeFilter = 'prybytky'" :class="activeFilter === 'prybytky' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Прибитки</button>
-                <button @click="activeFilter = 'sorokopen'" :class="activeFilter === 'sorokopen' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Сорокопень</button>
-                <button @click="activeFilter = 'stari'" :class="activeFilter === 'stari' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Ст. Велідники</button>
-                <button @click="activeFilter = 'novi'" :class="activeFilter === 'novi' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Н. Велідники</button>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <template x-for="p in photos">
-                    <div x-show="activeFilter === 'all' || activeFilter === p.village" 
-                         x-transition:enter="transition ease-out duration-500"
-                         x-transition:enter-start="opacity-0 scale-90"
-                         class="aspect-square overflow-hidden rounded-3xl border border-white/5 relative group cursor-pointer">
-                        <img :src="p.url" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                            <p class="text-[9px] font-bold text-gold-accent uppercase" x-text="p.caption"></p>
-                        </div>
+    <!-- Digital Museum (Back from Original) -->
+    <section id="museum" class="py-40 bg-forest-deep">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h2 class="text-6xl font-serif text-white mb-24 tracking-tighter uppercase">Цифрова <span class="text-gold-accent italic">Спадщина</span></h2>
+            <div class="grid md:grid-cols-3 gap-10">
+                <div class="glass-card p-14 rounded-[4rem] group hover:border-gold-accent/50 transition-all border border-white/5">
+                    <div class="w-20 h-20 bg-gold-accent/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 text-gold-accent group-hover:scale-110 transition-transform">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-width="1.5"/></svg>
                     </div>
-                </template>
+                    <h3 class="text-3xl font-serif text-white mb-6">Музей Предметів</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-10">3D-моделі побутових речей наших прадідусів, знайдених на території громади.</p>
+                    <a href="#" class="text-gold-accent font-black uppercase tracking-widest text-[10px] hover:underline">Відкрити Двері →</a>
+                </div>
+                <div class="glass-card p-14 rounded-[4rem] scale-105 border-gold-accent/30 group">
+                    <div class="w-20 h-20 bg-gold-accent/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 text-gold-accent group-hover:scale-110 transition-transform">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-width="1.5"/></svg>
+                    </div>
+                    <h3 class="text-3xl font-serif text-gold-accent mb-6">Пошук Родоводу</h3>
+                    <p class="text-sm text-gray-300 leading-relaxed mb-10 font-medium">Цифрова база метричних книг. Знайдіть своє коріння в архівах Велідників.</p>
+                    <a href="#" class="bg-gold-accent text-forest-deep px-8 py-3 rounded-full font-black uppercase tracking-widest text-[9px] shadow-2xl">Почати Пошук</a>
+                </div>
+                <div class="glass-card p-14 rounded-[4rem] group hover:border-gold-accent/50 transition-all border border-white/5">
+                    <div class="w-20 h-20 bg-gold-accent/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 text-gold-accent group-hover:scale-110 transition-transform">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="1.5"/></svg>
+                    </div>
+                    <h3 class="text-3xl font-serif text-white mb-6">Фотоархів</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-10">Архівні світлини та сучасні пейзажі. Полісся крізь об'єктив часу.</p>
+                    <a href="#gallery" class="text-gold-accent font-black uppercase tracking-widest text-[10px] hover:underline">Галерея →</a>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- 3D VR TOUR -->
-    <section id="vr-tour" class="py-32 bg-forest-deep" x-show="panoramas.length">
+    <!-- VR 360 Section (The New One) -->
+    <section id="vr-tour" class="py-40 bg-forest-dark relative" x-show="panoramas.length">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="mb-12">
-                <h2 class="text-4xl font-serif text-white">Віртуальний тур</h2>
-                <div class="flex flex-wrap gap-4 mt-8">
-                    <template x-for="pano in panoramas">
-                        <button @click="loadPano(pano.url)" class="px-8 py-3 rounded-full border border-white/10 text-[11px] font-bold uppercase hover:bg-gold-accent hover:text-forest-deep transition-all" x-text="pano.name"></button>
+            <div class="flex flex-col md:flex-row justify-between items-end mb-20 gap-10">
+                <div class="max-w-2xl">
+                    <h2 class="text-5xl md:text-7xl font-serif text-white tracking-tighter uppercase leading-none">Цифровий <span class="text-gold-accent italic">Портал</span></h2>
+                    <p class="text-gray-400 text-lg mt-6 font-light italic">Оберіть локацію, щоб опинитися в самому центрі наших мальовничих краєвидів.</p>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    <template x-for="p in panoramas">
+                        <button @click="loadPano(p.url)" class="px-8 py-3 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-gold-accent hover:text-forest-deep transition-all" x-text="p.name"></button>
                     </template>
                 </div>
             </div>
-            <div class="glass-card p-3 rounded-[3rem]">
+            <div class="glass-card p-3 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
                 <canvas id="pano-canvas"></canvas>
             </div>
         </div>
     </section>
+
+    <!-- Chat Community (Glass Interface) -->
+    <section id="chat" class="py-40 bg-forest-deep">
+        <div class="max-w-5xl mx-auto px-6 grid lg:grid-cols-2 gap-20">
+            <div>
+                <h2 class="text-6xl font-serif text-white mb-10 tracking-tighter uppercase">Будь <span class="text-gold-accent italic">Поруч</span></h2>
+                <p class="text-gray-400 text-lg mb-12 font-light leading-relaxed">Спілкуйтеся з сусідами, обговорюйте важливі події та діліться теплом громади в реальному часі.</p>
+                <div class="glass-card p-8 rounded-[2.5rem] border-l-4 border-gold-accent">
+                    <h4 class="text-gold-accent font-black uppercase text-[10px] tracking-widest mb-2">Наступна подія:</h4>
+                    <p class="text-2xl font-serif text-white italic">Свято Кряжу 2024</p>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-[3rem] overflow-hidden flex flex-col h-[650px] relative shadow-2xl border-white/5">
+                <div class="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Live Community</span>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></span>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">Online</span>
+                    </div>
+                </div>
+                
+                <div class="flex-1 p-8 overflow-y-auto space-y-6" id="chat-msgs">
+                    <div x-show="!user" class="absolute inset-0 z-20 backdrop-blur-2xl bg-forest-deep/60 flex flex-col items-center justify-center text-center p-10">
+                        <p class="text-gold-accent font-serif text-3xl mb-8 italic">Заходьте до громади</p>
+                        <button @click="login()" class="bg-gold-accent text-forest-deep px-12 py-4 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl hover:scale-105 transition-all">Увійти через Google</button>
+                    </div>
+                    <template x-for="msg in messages">
+                        <div class="flex flex-col" :class="msg.uid === user?.uid ? 'items-end' : 'items-start'">
+                            <span class="text-[9px] font-black text-gold-accent uppercase mb-1 px-3" x-text="msg.name"></span>
+                            <div class="max-w-[85%] p-5 rounded-[2rem] text-sm shadow-xl" :class="msg.uid === user?.uid ? 'bg-gold-accent text-forest-deep rounded-tr-none' : 'bg-white/5 text-gray-300 rounded-tl-none border border-white/5'">
+                                <span x-text="msg.text"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="p-8 bg-black/20 border-t border-white/5 flex gap-4">
+                    <input type="text" x-model="newMsg" @keydown.enter="sendMsg" :disabled="!user" placeholder="Напишіть сусідам..." class="flex-1 bg-transparent border border-white/10 rounded-full px-8 py-4 outline-none focus:border-gold-accent transition-all disabled:opacity-20 text-sm font-medium">
+                    <button @click="sendMsg" :disabled="!user" class="w-14 h-14 bg-gold-accent text-forest-deep rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Decor -->
+    <footer class="py-24 bg-forest-deep text-center border-t border-white/5 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col items-center relative z-10">
+            <div class="text-3xl font-serif font-bold text-gold-accent uppercase tracking-tighter mb-6">Моє Село</div>
+            <p class="text-[10px] text-gray-600 uppercase tracking-[0.5em] mb-12">Цифрова варта Поліської спадщини • 2024</p>
+            <div class="flex gap-10">
+                <a href="#" class="text-gray-500 hover:text-gold-accent transition-all text-xs font-bold uppercase tracking-widest">Facebook</a>
+                <a href="#" class="text-gray-500 hover:text-gold-accent transition-all text-xs font-bold uppercase tracking-widest">Telegram</a>
+                <a href="#" class="text-gray-500 hover:text-gold-accent transition-all text-xs font-bold uppercase tracking-widest">Instagram</a>
+            </div>
+        </div>
+        <div class="absolute bottom-[-100px] left-[-20px] text-[300px] font-serif font-bold text-white opacity-[0.01] pointer-events-none select-none">POLISSYA</div>
+    </footer>
+
+    <!-- Video Player Modal -->
+    <div x-show="openVideo" x-cloak class="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6" @click="openVideo = false">
+        <button class="absolute top-10 right-10 text-white text-5xl opacity-50 hover:opacity-100">&times;</button>
+        <div class="w-full max-w-6xl aspect-video rounded-[3rem] overflow-hidden shadow-2xl border border-white/10">
+            <iframe class="w-full h-full" :src="videoUrl" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -194,76 +363,75 @@
             appId: "1:446551102286:web:08ec3b9a8b3c966dcc441f"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
         const auth = firebase.auth();
+        const db = firebase.firestore();
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('mainApp', () => ({
-                user: null, isAdmin: false, announcements: [], photos: [], videos: [], panoramas: [],
-                openVideo: false, videoUrl: '',
-                
+                user: null, isAdmin: false, announcements: [], videos: [], panoramas: [],
+                openVideo: false, videoUrl: '', messages: [], newMsg: '',
+                villages: [
+                    {id:'prybytky', name:'Прибитки', desc:'Серце лісової громади та затишку.', img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800'},
+                    {id:'sorokopen', name:'Сорокопень', desc:'Геологічна вершина Поліського краю.', img:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800'},
+                    {id:'stari', name:'Старі Велідники', desc:'Хранителі прадавньої шляхетської слави.', img:'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=800'},
+                    {id:'novi', name:'Нові Велідники', desc:'Енергія розвитку та спільного майбутнього.', img:'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=800'}
+                ],
                 init() {
                     auth.onAuthStateChanged(u => {
                         this.user = u;
                         this.isAdmin = u && u.email === 'restend88@gmail.com';
+                        this.listenChat();
                     });
-                    
                     db.collection('announcements').orderBy('ts', 'desc').onSnapshot(s => this.announcements = s.docs.map(d => d.data()));
-                    db.collection('village_photos').orderBy('ts', 'desc').onSnapshot(s => this.photos = s.docs.map(d => d.data()));
-                    db.collection('panoramas').orderBy('ts', 'desc').onSnapshot(s => {
-                        this.panoramas = s.docs.map(d => d.data());
-                        if(this.panoramas.length && !window.panoLoaded) {
-                            setTimeout(() => this.loadPano(this.panoramas[0].url), 1000);
-                            window.panoLoaded = true;
-                        }
-                    });
-
                     db.collection('village_videos').orderBy('ts', 'desc').onSnapshot(s => {
                         this.videos = s.docs.map(d => d.data());
-                        this.$nextTick(() => { this.initSwiper(); });
+                        this.$nextTick(() => this.initSwiper());
+                    });
+                    db.collection('panoramas').orderBy('ts', 'desc').onSnapshot(s => {
+                        this.panoramas = s.docs.map(d => d.data());
+                        if(this.panoramas.length && !window.panoInited) setTimeout(() => this.loadPano(this.panoramas[0].url), 1000);
                     });
                 },
-
                 login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); },
                 logout() { auth.signOut().then(() => location.reload()); },
-                
-                playVideo(id) {
-                    this.videoUrl = 'https://www.youtube.com/embed/' + id + '?autoplay=1';
-                    this.openVideo = true;
-                },
-
+                playVideo(id) { this.videoUrl = 'https://www.youtube.com/embed/' + id + '?autoplay=1'; this.openVideo = true; },
                 initSwiper() {
                     new Swiper(".videoSwiper", {
-                        slidesPerView: 1.5,
-                        spaceBetween: 20,
+                        slidesPerView: 1.4, spaceBetween: 20, centeredSlides: false,
                         navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
-                        breakpoints: {
-                            640: { slidesPerView: 2.5 },
-                            1024: { slidesPerView: 4.5 }
-                        }
+                        breakpoints: { 640: { slidesPerView: 2.5 }, 1024: { slidesPerView: 4.5 }, 1440: { slidesPerView: 5.5 } }
                     });
                 },
-
-                loadPano(url) { if (window.updatePanoTexture) window.updatePanoTexture(url); }
+                loadPano(url) { if (window.updatePano) window.updatePano(url); },
+                listenChat() {
+                    db.collection('chat_messages').orderBy('ts', 'asc').limitToLast(40).onSnapshot(s => {
+                        this.messages = s.docs.map(d => d.data());
+                        setTimeout(() => { const c = document.getElementById('chat-msgs'); if(c) c.scrollTop = c.scrollHeight; }, 100);
+                    });
+                },
+                async sendMsg() {
+                    if(!this.newMsg.trim()) return;
+                    await db.collection('chat_messages').add({
+                        text: this.newMsg, uid: this.user.uid, name: this.user.displayName,
+                        ts: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    this.newMsg = '';
+                }
             }));
         });
 
-        // Three.js 3D Pano
+        // --- Three.js Panorama Engine ---
         let scene, camera, renderer, sphere;
-        function initPano() {
+        function initPanoEngine() {
             const canvas = document.getElementById('pano-canvas');
             if(!canvas) return;
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / 500, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-            renderer.setSize(canvas.clientWidth, 500);
-            const geometry = new THREE.SphereGeometry(500, 60, 40);
-            geometry.scale(-1, 1, 1);
-            sphere = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x111111 }));
+            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / 600, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(canvas.clientWidth, 600);
+            sphere = new THREE.Mesh(new THREE.SphereGeometry(500, 60, 40).scale(-1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x111111 }));
             scene.add(sphere);
-            window.updatePanoTexture = (url) => {
-                new THREE.TextureLoader().load(url, (texture) => { sphere.material.map = texture; sphere.material.needsUpdate = true; });
-            };
+            window.updatePano = (url) => { new THREE.TextureLoader().load(url, (t) => { sphere.material.map = t; sphere.material.needsUpdate = true; window.panoInited = true; }); };
             camera.position.set(0, 0, 0.1);
             let lon = 0, lat = 0, isUserInteracting = false, onPointerDownPointerX = 0, onPointerDownPointerY = 0, onPointerDownLon = 0, onPointerDownLat = 0;
             canvas.addEventListener('mousedown', (e) => { isUserInteracting = true; onPointerDownPointerX = e.clientX; onPointerDownPointerY = e.clientY; onPointerDownLon = lon; onPointerDownLat = lat; });
@@ -273,9 +441,30 @@
             animate();
         }
 
+        gsap.registerPlugin(ScrollTrigger);
         window.addEventListener('load', () => {
-            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', scrub: true }, y: 200 });
-            initPano();
+            gsap.to('.hero-reveal', { opacity: 1, y: 0, duration: 1.5, stagger: 0.3, ease: "power4.out" });
+            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom top', scrub: true }, y: 300 });
+            initPanoEngine();
+            // Stats counter
+            document.querySelectorAll('.stat-item div[data-count]').forEach(s => {
+                const target = +s.getAttribute('data-count');
+                ScrollTrigger.create({
+                    trigger: s, start: 'top 90%',
+                    onEnter: () => { let c = {v:0}; gsap.to(c, {v:target, duration:2, onUpdate: () => s.innerText = Math.floor(c.v) + '+' }); }
+                });
+            });
+            // Fireflies
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const p = document.createElement('div');
+                p.className = 'absolute bg-gold-accent/20 rounded-full blur-xl';
+                const size = Math.random() * 80 + 30;
+                p.style.width = p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%'; p.style.top = Math.random() * 100 + '%';
+                container.appendChild(p);
+                gsap.to(p, { x: 'random(-100, 100)', y: 'random(-100, 100)', duration: 'random(5, 10)', repeat: -1, yoyo: true, ease: "sine.inOut" });
+            }
         });
     </script>
 </body>
