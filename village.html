@@ -1,202 +1,182 @@
 <!DOCTYPE html>
-<html lang="uk" class="scroll-smooth">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Село — Спадщина Полісся</title>
     
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
-    
-    <!-- Libraries -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,700;1,700&family=Plus+Jakarta+Sans:wght@400;600;800&family=Great+Vibes&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     
-    <!-- Swiper.js for Video Slider -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
-    <!-- Firebase -->
+    <!-- Firebase & Swiper -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    
-    <!-- Alpine.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { 'forest-dark': '#0A2F1F', 'forest-deep': '#061A12', 'gold-accent': '#D4A017', 'gold-bright': '#E8B923' },
-                    fontFamily: { serif: ['Cormorant Garamond', 'serif'], sans: ['Plus Jakarta Sans', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
     <style>
-        body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-        .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(212, 160, 23, 0.1); }
+        body { background-color: #061A12; color: #1B1411; overflow-x: hidden; }
         
-        /* Swiper Controls */
-        .swiper-button-next, .swiper-button-prev { color: #D4A017 !important; transform: scale(0.7); }
-        
-        /* Image Lightbox Animation */
-        [x-cloak] { display: none !important; }
-        
-        .hero-title { line-height: 0.8; }
-        
-        .scroll-reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
-        .scroll-reveal.active { opacity: 1; transform: translateY(0); }
+        /* Текстура старого паперу */
+        .parchment {
+            background: #e6d5b8 url('https://www.transparenttextures.com/patterns/parchment.png');
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.2), 0 50px 100px rgba(0,0,0,0.5);
+            min-height: 100vh;
+            border-radius: 2rem 2rem 0 0;
+            margin-top: -50px;
+            position: relative;
+            z-index: 10;
+        }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #D4A017; border-radius: 10px; }
+        .village-title { font-family: 'Great Vibes', cursive; color: #2D1B0D; }
+        .handwritten { font-family: 'Cormorant Garamond', serif; font-style: italic; }
+
+        /* Стилізація інтерактивних предметів (Кнопки-об'єкти) */
+        .item-btn {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+        }
+        .item-btn:hover { transform: scale(1.1) rotate(2deg); filter: drop-shadow(0 20px 30px rgba(0,0,0,0.3)); }
+        .item-btn:active { transform: scale(0.95); }
+
+        /* Спеціальний шрифт для підписів об'єктів */
+        .item-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            color: #4A3728;
+            opacity: 0.7;
+        }
+
+        /* Модальні вікна секцій */
+        .section-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(6, 26, 18, 0.98);
+            backdrop-filter: blur(20px);
+            display: none;
+            overflow-y: auto;
+            padding: 40px 20px;
+        }
+        .section-overlay.active { display: block; }
+
+        .close-btn { position: fixed; top: 30px; right: 30px; z-index: 110; color: #D4A017; font-size: 3rem; }
+
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="villageApp()">
-    <div class="noise-bg"></div>
 
-    <!-- Lightbox for Photos -->
-    <div x-show="lightbox.open" x-cloak class="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4" @click="lightbox.open = false">
-        <button class="absolute top-10 right-10 text-white/50 hover:text-white text-5xl">&times;</button>
-        <img :src="lightbox.img" class="max-h-full max-w-full rounded-2xl shadow-2xl border border-white/10">
+    <!-- 1. ВЕРХНЯ ЧАСТИНА (ФОТО БУДИНКУ) -->
+    <section class="h-[60vh] relative overflow-hidden">
+        <img :src="village.img" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#e6d5b8] via-transparent to-transparent"></div>
+        <a href="index.html" class="absolute top-8 left-8 bg-white/20 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/40 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"/></svg>
+        </a>
+    </section>
+
+    <!-- 2. ПЕРГАМЕНТНА ЧАСТИНА -->
+    <main class="parchment px-6 pb-20">
+        <div class="max-w-4xl mx-auto text-center pt-16">
+            <h1 class="text-7xl md:text-9xl village-title mb-4" x-text="village.name"></h1>
+            <div class="flex items-center justify-center gap-4 mb-12">
+                <div class="h-[1px] w-12 bg-[#4A3728]/30"></div>
+                <p class="handwritten text-xl md:text-2xl text-[#4A3728]" x-text="village.sub"></p>
+                <div class="h-[1px] w-12 bg-[#4A3728]/30"></div>
+            </div>
+
+            <!-- ІНТЕРАКТИВНА ЗОНА (КНОПКИ-ОБ'ЄКТИ) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-12 mt-20 relative px-4">
+                
+                <!-- Історія (Книга) -->
+                <div class="relative group item-btn" @click="activeTab = 'history'">
+                    <img src="https://img.icons8.com/plasticine/200/book.png" class="mx-auto w-32 md:w-40">
+                    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-serif font-bold text-xs text-white uppercase opacity-80 pointer-events-none">Історія</span>
+                    <p class="item-label">Тисніть на книгу</p>
+                </div>
+
+                <!-- Фото (Стопка фото) -->
+                <div class="relative group item-btn" @click="activeTab = 'gallery'">
+                    <img src="https://img.icons8.com/plasticine/200/stack-of-photos.png" class="mx-auto w-32 md:w-40">
+                    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-serif font-bold text-xs text-white uppercase opacity-80 pointer-events-none">Фото</span>
+                    <p class="item-label">Галерея</p>
+                </div>
+
+                <!-- Архів (Портфель) -->
+                <div class="relative group item-btn" @click="activeTab = 'archives'">
+                    <img src="https://img.icons8.com/plasticine/200/briefcase.png" class="mx-auto w-32 md:w-40">
+                    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-serif font-bold text-xs text-white uppercase opacity-80 pointer-events-none">Архів</span>
+                    <p class="item-label">Тисніть на портфель</p>
+                </div>
+
+                <!-- Відео (Плівка) -->
+                <div class="relative group item-btn" @click="activeTab = 'video'">
+                    <img src="https://img.icons8.com/plasticine/200/movie-projector.png" class="mx-auto w-32 md:w-40">
+                    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-serif font-bold text-xs text-white uppercase opacity-80 pointer-events-none">Відео</span>
+                    <p class="item-label">Відео-хроніка</p>
+                </div>
+
+                <!-- 3D Кімната (Глобус/Магія) -->
+                <div class="relative group item-btn mt-10 md:col-start-2 col-span-2" @click="activeTab = 'vr'">
+                    <img src="https://img.icons8.com/plasticine/200/globe.png" class="mx-auto w-24">
+                    <p class="item-label">3D Панорами 360°</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- СЕКЦІЇ (MODALS) -->
+    
+    <!-- 1. Історія -->
+    <div class="section-overlay" :class="activeTab === 'history' ? 'active' : ''">
+        <button class="close-btn" @click="activeTab = ''">&times;</button>
+        <div class="max-w-4xl mx-auto mt-20">
+            <h2 class="text-6xl font-serif text-[#D4A017] mb-12 text-center italic">Літопис села</h2>
+            <div class="bg-white/5 p-10 rounded-[3rem] text-xl text-gray-300 leading-relaxed font-light first-letter:text-6xl first-letter:text-gold-accent" x-text="village.history"></div>
+        </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-[100] px-6 py-8 transition-all duration-500">
-        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full shadow-2xl">
-            <a href="index.html" class="flex items-center gap-3 group">
-                <div class="w-8 h-8 bg-gold-accent rounded-full flex items-center justify-center text-forest-deep font-black text-xs group-hover:rotate-180 transition-transform duration-500">←</div>
-                <span class="text-xl font-serif font-bold text-gold-accent tracking-tighter uppercase">Громада</span>
-            </a>
-            
-            <div class="flex items-center gap-4">
-                <div class="text-right hidden sm:block">
-                    <p class="text-[9px] font-black text-gold-accent uppercase" x-text="village.name"></p>
-                    <p class="text-[10px] text-gray-400">Цифровий літопис</p>
-                </div>
-                <template x-if="user">
-                    <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-gold-accent shadow-lg">
-                </template>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        <div class="absolute inset-0 z-0">
-            <img :src="village.img" class="w-full h-full object-cover scale-110 opacity-40 parallax-bg">
-            <div class="absolute inset-0 bg-gradient-to-b from-forest-deep/0 via-forest-deep/80 to-forest-deep"></div>
-        </div>
-
-        <div class="relative z-10 text-center px-6 max-w-5xl">
-            <span class="text-gold-accent font-bold uppercase tracking-[0.5em] text-[10px] block mb-6 animate-pulse">Легенди Полісся</span>
-            <h1 class="text-7xl md:text-[160px] font-serif font-bold text-white hero-title tracking-tighter mb-12" x-text="village.name"></h1>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20">
-                <div class="glass-card p-6 rounded-[2rem]">
-                    <span class="block text-2xl font-serif text-gold-accent" x-text="village.pop"></span>
-                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Мешканців</span>
-                </div>
-                <div class="glass-card p-6 rounded-[2rem]">
-                    <span class="block text-2xl font-serif text-gold-accent" x-text="village.area"></span>
-                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Площа</span>
-                </div>
-                <div class="glass-card p-6 rounded-[2rem]">
-                    <span class="block text-2xl font-serif text-gold-accent" x-text="village.founded"></span>
-                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Заснування</span>
-                </div>
-                <div class="glass-card p-6 rounded-[2rem]">
-                    <span class="block text-2xl font-serif text-gold-accent">Жива</span>
-                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Історія</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- History & Description -->
-    <section class="py-32 bg-forest-deep">
-        <div class="max-w-4xl mx-auto px-6">
-            <div class="scroll-reveal active">
-                <h2 class="text-4xl font-serif text-gold-accent italic mb-10 text-center">Про село</h2>
-                <div class="glass-card p-10 md:p-16 rounded-[3rem] relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-gold-accent/30"></div>
-                    <p class="text-xl md:text-2xl text-gray-200 leading-relaxed font-light first-letter:text-5xl first-letter:text-gold-accent first-letter:font-serif first-letter:mr-3" x-text="village.history"></p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Image Gallery (Village Specific) -->
-    <section class="py-32 bg-forest-dark" x-show="villagePhotos.length">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex justify-between items-end mb-16">
-                <div>
-                    <h2 class="text-5xl font-serif text-white tracking-tighter">Світлини Пам'яті</h2>
-                    <div class="w-20 h-1 bg-gold-accent mt-4"></div>
-                </div>
-                <p class="text-gray-500 italic text-sm">Галерея локації</p>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <template x-for="p in villagePhotos">
-                    <div class="aspect-[4/5] overflow-hidden rounded-[2rem] border border-white/5 relative group cursor-zoom-in shadow-2xl" @click="openPhoto(p.url)">
+    <!-- 2. Галерея -->
+    <div class="section-overlay" :class="activeTab === 'gallery' ? 'active' : ''">
+        <button class="close-btn" @click="activeTab = ''">&times;</button>
+        <div class="max-w-6xl mx-auto mt-20">
+            <h2 class="text-5xl font-serif text-[#D4A017] mb-16 text-center">Світлини Пам'яті</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <template x-for="p in photos">
+                    <div class="aspect-[4/5] rounded-3xl overflow-hidden border border-white/10 group">
                         <img :src="p.url" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
-                            <p class="text-xs font-bold text-gold-accent uppercase tracking-widest" x-text="p.caption"></p>
-                        </div>
                     </div>
                 </template>
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Video Archive (Village Specific - Slider Style) -->
-    <section class="py-32 bg-forest-deep overflow-hidden" x-show="villageVideos.length">
-        <div class="max-w-7xl mx-auto px-6">
-            <h2 class="text-5xl font-serif text-white mb-16 tracking-tighter">Відео-хроніки</h2>
-            
-            <div class="swiper villageVideoSwiper !overflow-visible">
-                <div class="swiper-wrapper">
-                    <template x-for="v in villageVideos">
-                        <div class="swiper-slide">
-                            <div class="glass-card p-2 rounded-[2.5rem] overflow-hidden group shadow-2xl transition-transform duration-500 hover:-translate-y-4">
-                                <div class="aspect-[9/16] rounded-[2rem] overflow-hidden relative">
-                                    <img :src="'https://img.youtube.com/vi/' + v.ytId + '/maxresdefault.jpg'" class="w-full h-full object-cover">
-                                    <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors flex items-center justify-center">
-                                        <div class="w-16 h-16 bg-gold-accent rounded-full flex items-center justify-center text-forest-deep shadow-2xl scale-90 group-hover:scale-110 transition-transform">
-                                            <svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5v13l13-6.5-13-6.5z"/></svg>
-                                        </div>
-                                    </div>
-                                    <a :href="'https://www.youtube.com/watch?v=' + v.ytId" target="_blank" class="absolute inset-0 z-10"></a>
-                                </div>
-                                <div class="p-6">
-                                    <h4 class="text-sm font-bold text-white tracking-tight uppercase" x-text="v.title"></h4>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-                <!-- Navigation -->
-                <div class="flex gap-4 mt-12 justify-center">
-                    <div class="swiper-prev cursor-pointer w-12 h-12 border border-gold-accent rounded-full flex items-center justify-center text-gold-accent hover:bg-gold-accent hover:text-forest-deep transition-all">←</div>
-                    <div class="swiper-next cursor-pointer w-12 h-12 border border-gold-accent rounded-full flex items-center justify-center text-gold-accent hover:bg-gold-accent hover:text-forest-deep transition-all">→</div>
-                </div>
+    <!-- 3. Відео -->
+    <div class="section-overlay" :class="activeTab === 'video' ? 'active' : ''">
+        <button class="close-btn" @click="activeTab = ''">&times;</button>
+        <div class="max-w-6xl mx-auto mt-20 text-center">
+            <h2 class="text-5xl font-serif text-[#D4A017] mb-16">Відео-архів</h2>
+            <div class="grid md:grid-cols-2 gap-10">
+                <template x-for="v in videos">
+                    <div class="rounded-[2.5rem] overflow-hidden border border-white/10 aspect-video">
+                        <iframe class="w-full h-full" :src="'https://www.youtube.com/embed/' + v.ytId" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                </template>
             </div>
         </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="py-20 border-t border-white/5 text-center">
-        <a href="index.html" class="inline-block border border-gold-accent/30 text-gold-accent px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-gold-accent hover:text-forest-deep transition-all">Повернутись до головної</a>
-        <p class="text-[10px] text-gray-600 uppercase tracking-[0.5em] mt-12">Моє Село • Спадщина Полісся • 2024</p>
-    </footer>
+    </div>
 
     <script>
-        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBRJzUm5zYrsXLSGA7iGGoBZ6bblHnTONs",
             authDomain: "moe-selo-76a49.firebaseapp.com",
@@ -206,86 +186,43 @@
             appId: "1:446551102286:web:08ec3b9a8b3c966dcc441f"
         };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Village Static Data (Defaults if not in DB)
         const VILLAGE_DATA = {
-            'prybytky': { name: 'Прибитки', pop: '150+', area: '2.5 км²', founded: 'XV ст.', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200', history: 'Прибитки — це серце нашої громади, де час уповільнює свій біг. Село, оточене прадавніми лісами Полісся, зберігає унікальні традиції бортництва та дерев’яного зодчества. Кожна хата тут має свою історію, а лісові стежки пам’ятають кроки багатьох поколінь нашого роду.' },
-            'sorokopen': { name: 'Сорокопень', pop: '220+', area: '0.8 км²', founded: '1569 р.', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200', history: 'Сорокопень гордо височіє на Словечансько-Овруцькому кряжі. Це місце геологічної магії, де видобувають рідкісний пірофіліт. Село славиться своїми краєвидами, що відкриваються з висоти кряжу, та незламним духом горян Полісся.' },
-            'stari': { name: 'Старі Велідники', pop: '85+', area: '1.2 км²', founded: 'XVI ст.', img: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=1200', history: 'Старі Велідники — шляхетське гніздо нашого краю. Тут кожен камінь дихає історією XVII століття та козацької слави. Це осередок духовності та прадавніх архівів, де зберігаються пам’ятки нашого родоводу.' },
-            'novi': { name: 'Нові Велідники', pop: '120+', area: '1.8 км²', founded: 'XIX ст.', img: 'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=1200', history: 'Нові Велідники — це енергія майбутнього. Виникнувши як молоде розгалуження старого поселення, сьогодні село є центром культурного життя громади. Тут розвивається фермерство, а молодь активно відроджує народні обряди у сучасному ритмі.' }
+            'prybytky': { name: 'Прибитки', sub: 'Фото. Відео. Історія. Архівні документи.', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200', history: 'Прибитки — це місце сили, де кожен камінь дихає історією. Засноване у XV столітті, село пережило віки, зберігши свою душу...' },
+            'sorokopen': { name: 'Сорокопень', sub: 'Край Кряжу та Пірофіліту', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200', history: 'Сорокопень гордо стоїть на вершині Словечансько-Овруцького кряжу...' },
+            'stari': { name: 'Старі Велідники', sub: 'Шляхетська Слава Полісся', img: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=1200', history: 'Старі Велідники — одне з найстаріших поселень краю...' },
+            'novi': { name: 'Нові Велідники', sub: 'Молоде Серце Громади', img: 'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=1200', history: 'Нові Велідники — це майбутнє, яке будується на міцному фундаменті минулого...' }
         };
 
         function villageApp() {
             return {
-                user: null,
                 villageId: new URLSearchParams(window.location.search).get('v') || 'prybytky',
-                village: { name: '', pop: '', area: '', founded: '', img: '', history: '' },
-                villagePhotos: [],
-                villageVideos: [],
-                lightbox: { open: false, img: '' },
+                village: {},
+                activeTab: '',
+                photos: [],
+                videos: [],
 
                 init() {
-                    // Set basic data
                     this.village = VILLAGE_DATA[this.villageId] || VILLAGE_DATA['prybytky'];
                     
-                    auth.onAuthStateChanged(u => this.user = u);
+                    // Завантаження фото села з бази
+                    db.collection('village_photos').where('village', '==', this.villageId).onSnapshot(s => {
+                        this.photos = s.docs.map(d => d.data());
+                    });
 
-                    // Sync Village Photos
-                    db.collection('village_photos')
-                      .where('village', '==', this.villageId)
-                      .orderBy('ts', 'desc')
-                      .onSnapshot(s => {
-                          this.villagePhotos = s.docs.map(d => d.data());
-                      });
-
-                    // Sync Village Videos
-                    db.collection('village_videos')
-                      .where('village', '==', this.villageId)
-                      .orderBy('ts', 'desc')
-                      .onSnapshot(s => {
-                          this.villageVideos = s.docs.map(d => d.data());
-                          this.$nextTick(() => this.initSwiper());
-                      });
-                },
-
-                openPhoto(url) {
-                    this.lightbox.img = url;
-                    this.lightbox.open = true;
-                },
-
-                initSwiper() {
-                    new Swiper(".villageVideoSwiper", {
-                        slidesPerView: 1.2,
-                        spaceBetween: 30,
-                        centeredSlides: false,
-                        navigation: {
-                            nextEl: ".swiper-next",
-                            prevEl: ".swiper-prev",
-                        },
-                        breakpoints: {
-                            640: { slidesPerView: 2.2 },
-                            1024: { slidesPerView: 3.5 },
-                            1440: { slidesPerView: 4.5 }
-                        }
+                    // Завантаження відео села з бази
+                    db.collection('village_videos').where('village', '==', this.villageId).onSnapshot(s => {
+                        this.videos = s.docs.map(d => d.data());
                     });
                 }
             }
         }
 
-        // GSAP Parallax
-        gsap.registerPlugin(ScrollTrigger);
+        // Плавна поява предметів
         window.addEventListener('load', () => {
-            gsap.to('.parallax-bg', {
-                scrollTrigger: {
-                    trigger: 'body',
-                    start: 'top top',
-                    end: 'bottom top',
-                    scrub: true
-                },
-                y: 200,
-                scale: 1.2
+            gsap.from(".item-btn", { 
+                y: 100, opacity: 0, duration: 1, stagger: 0.2, ease: "power4.out" 
             });
         });
     </script>
