@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моє Село — Громада Полісся | Цифровий Портал</title>
+    <title>Моє Село — Громада Полісся | Медіа-Портал</title>
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -12,13 +12,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
+    <!-- Swiper.js (for ColorWay Slider) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -33,33 +38,37 @@
 
     <style>
         body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
         .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(212, 160, 23, 0.1); }
         
-        /* Advanced Hover Effects */
-        .village-card { perspective: 1200px; }
-        .card-inner { transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; border-radius: 2.5rem; }
-        .village-card:hover .card-inner { transform: translateY(-15px) rotateX(4deg) rotateY(2deg); border-color: #D4A017; box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8); }
-        .village-card:active .card-inner { transform: scale(0.94); transition: all 0.1s; }
+        /* Swiper Customization */
+        .swiper-button-next, .swiper-button-prev { color: #D4A017 !important; background: rgba(0,0,0,0.5); width: 50px; height: 50px; border-radius: 50%; border: 1px solid rgba(212, 160, 23, 0.3); backdrop-filter: blur(10px); }
+        .swiper-button-next:after, .swiper-button-prev:after { font-size: 20px !important; font-weight: bold; }
         
-        /* 3D Pano Canvas */
-        #pano-canvas { width: 100%; height: 500px; border-radius: 2.5rem; cursor: grab; background: #000; }
-        #pano-canvas:active { cursor: grabbing; }
+        /* Video Card Reels Style */
+        .video-card { aspect-ratio: 9/16; border-radius: 1.5rem; overflow: hidden; position: relative; cursor: pointer; transition: 0.4s; }
+        .video-card:hover { transform: translateY(-10px); }
+        .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 50%; display: flex; items-center; justify-center; opacity: 0; transition: 0.3s; }
+        .video-card:hover .play-btn { opacity: 1; }
 
-        .ann-marquee { animation: scroll-left 30s linear infinite; }
+        .ann-marquee { animation: scroll-left 35s linear infinite; }
         @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #D4A017; border-radius: 10px; }
+
         [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="mainApp">
-    <div class="noise-bg"></div>
+
+    <!-- Modal for Video Player -->
+    <div x-show="openVideo" x-cloak class="fixed inset-0 z-[1000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-xl">
+        <button @click="openVideo = false" class="absolute top-10 right-10 text-white text-4xl">&times;</button>
+        <div class="w-full max-w-5xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl">
+            <iframe id="modal-iframe" class="w-full h-full" :src="videoUrl" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <!-- Announcement Bar -->
-    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-gold-accent text-forest-deep py-2 overflow-hidden border-b border-black/10 shadow-xl">
-        <div class="flex whitespace-nowrap gap-20 ann-marquee font-black uppercase tracking-widest text-[10px]">
+    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-gold-accent text-forest-deep py-2 overflow-hidden border-b border-black/10">
+        <div class="flex whitespace-nowrap gap-20 ann-marquee font-black uppercase text-[10px]">
             <template x-for="ann in announcements">
                 <span>📢 <span x-text="ann.title"></span>: <span x-text="ann.text" class="font-bold opacity-80"></span></span>
             </template>
@@ -69,130 +78,108 @@
     <!-- Navigation -->
     <nav class="fixed w-full z-[100] px-6 py-12 transition-all duration-500" id="main-nav">
         <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full">
-            <div class="flex items-center gap-3 cursor-pointer" @click="window.scrollTo({top:0, behavior:'smooth'})">
+            <div class="flex items-center gap-3 cursor-pointer" @click="location.reload()">
                 <div class="w-10 h-10 bg-gold-accent rounded-full flex items-center justify-center font-extrabold text-forest-deep">МС</div>
-                <span class="text-xl font-serif font-bold text-gold-accent uppercase tracking-tighter">Моє Село</span>
+                <span class="text-xl font-serif font-bold text-gold-accent uppercase">Моє Село</span>
             </div>
-            
-            <div class="hidden md:flex gap-8 text-[11px] uppercase tracking-widest font-bold">
-                <a href="#villages" class="hover:text-gold-accent transition-all">Громада</a>
-                <a href="#vr-tour" class="hover:text-gold-accent transition-all">3D Тур</a>
-                <a href="#gallery" class="hover:text-gold-accent transition-all">Галерея</a>
-                <a href="#videos" class="hover:text-gold-accent transition-all">Архів</a>
-                <a x-show="isAdmin" href="admin.html" class="text-red-400 bg-red-400/10 px-3 py-1 rounded-full animate-pulse">⚙️ Панель</a>
+            <div class="hidden md:flex gap-8 text-[11px] font-bold uppercase tracking-widest">
+                <a href="#vr-tour" class="hover:text-gold-accent">3D Тур</a>
+                <a href="#gallery" class="hover:text-gold-accent">Галерея</a>
+                <a href="#videos" class="hover:text-gold-accent">Відео</a>
+                <a x-show="isAdmin" href="admin.html" class="text-red-400">⚙️ Панель</a>
             </div>
-
-            <div class="flex items-center gap-4">
-                <template x-if="!user">
-                    <button @click="login()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest">Увійти</button>
-                </template>
-                <template x-if="user">
-                    <div @click="logout()" class="flex items-center gap-3 cursor-pointer group">
-                        <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-gold-accent group-hover:scale-110 transition-transform shadow-xl">
-                    </div>
-                </template>
-            </div>
+            <button @click="user ? logout() : login()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-[10px] uppercase">
+                <span x-text="user ? 'Вийти' : 'Увійти'"></span>
+            </button>
         </div>
     </nav>
 
     <!-- Hero -->
     <section class="relative h-screen flex items-center justify-center overflow-hidden">
-        <div class="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=90&w=2000" class="w-full h-full object-cover scale-110 opacity-30 parallax-bg">
-            <div class="absolute inset-0 bg-gradient-to-b from-forest-deep/10 via-forest-deep/60 to-forest-deep"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-forest-deep"></div>
+        <div class="text-center z-10 px-4">
+            <h1 class="text-7xl md:text-[140px] font-serif font-bold text-white leading-none tracking-tighter">Спадщина <br> <span class="text-gold-accent italic">Предків</span></h1>
         </div>
-        <div class="relative z-10 text-center px-4">
-            <h2 class="text-gold-accent font-serif italic text-3xl mb-4 opacity-0 hero-fade">Поліська Спадщина</h2>
-            <h1 class="text-6xl md:text-[150px] font-serif font-bold mb-6 text-white opacity-0 hero-fade tracking-tighter leading-none">Спадщина <br> <span class="text-gold-accent italic">Предків</span></h1>
-            <div class="hero-fade opacity-0 mt-8">
-                <a href="#villages" class="border border-gold-accent/40 text-gold-accent px-12 py-5 rounded-full font-bold uppercase tracking-[0.4em] text-[10px] hover:bg-gold-accent hover:text-forest-deep transition-all backdrop-blur-md">До громади</a>
+    </section>
+
+    <!-- NEW: VIDEO SLIDER (COLORWAY STYLE) -->
+    <section id="videos" class="py-32 bg-forest-deep">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-serif text-white mb-4">Життя Громади</h2>
+                <div class="w-20 h-1 bg-gold-accent mx-auto"></div>
+            </div>
+
+            <div class="relative group">
+                <div class="swiper videoSwiper">
+                    <div class="swiper-wrapper">
+                        <template x-for="v in videos">
+                            <div class="swiper-slide">
+                                <div class="video-card glass-card p-1" @click="playVideo(v.ytId)">
+                                    <img :src="'https://img.youtube.com/vi/' + v.ytId + '/maxresdefault.jpg'" class="w-full h-full object-cover rounded-3xl">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                                    <div class="play-btn">
+                                        <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5v13l13-6.5-13-6.5z"/></svg>
+                                    </div>
+                                    <div class="absolute bottom-6 left-6 right-6">
+                                        <p class="text-[9px] font-bold text-gold-accent uppercase mb-1" x-text="v.village"></p>
+                                        <h4 class="text-sm font-bold text-white leading-tight" x-text="v.title"></h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <!-- Navigation Arrows -->
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
             </div>
         </div>
     </section>
 
-    <!-- Villages Section -->
-    <section id="villages" class="py-40 bg-forest-dark relative">
+    <!-- PHOTO GALLERY WITH FILTERS -->
+    <section id="gallery" class="py-32 bg-forest-dark" x-data="{ activeFilter: 'all' }">
         <div class="max-w-7xl mx-auto px-6">
-            <h2 class="text-6xl font-serif text-center mb-24 uppercase tracking-tighter">Наші Села</h2>
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
-                <template x-for="v in villagesList">
-                    <a :href="'village.html?v=' + v.id" class="village-card group block h-[550px]">
-                        <div class="card-inner glass-card p-3 h-full flex flex-col">
-                            <div class="h-2/3 overflow-hidden rounded-[2rem]">
-                                <img :src="v.img" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125">
-                            </div>
-                            <div class="p-6">
-                                <h3 class="text-3xl font-serif text-white mb-2" x-text="v.name"></h3>
-                                <p class="text-[11px] text-gray-400 leading-relaxed" x-text="v.desc"></p>
-                            </div>
+            <h2 class="text-5xl font-serif text-white text-center mb-16">Світлини Пам'яті</h2>
+            
+            <!-- Filters -->
+            <div class="flex flex-wrap justify-center gap-3 mb-16">
+                <button @click="activeFilter = 'all'" :class="activeFilter === 'all' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Усі фото</button>
+                <button @click="activeFilter = 'prybytky'" :class="activeFilter === 'prybytky' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Прибитки</button>
+                <button @click="activeFilter = 'sorokopen'" :class="activeFilter === 'sorokopen' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Сорокопень</button>
+                <button @click="activeFilter = 'stari'" :class="activeFilter === 'stari' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Ст. Велідники</button>
+                <button @click="activeFilter = 'novi'" :class="activeFilter === 'novi' ? 'bg-gold-accent text-forest-deep' : 'border border-white/10'" class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all">Н. Велідники</button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <template x-for="p in photos">
+                    <div x-show="activeFilter === 'all' || activeFilter === p.village" 
+                         x-transition:enter="transition ease-out duration-500"
+                         x-transition:enter-start="opacity-0 scale-90"
+                         class="aspect-square overflow-hidden rounded-3xl border border-white/5 relative group cursor-pointer">
+                        <img :src="p.url" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                            <p class="text-[9px] font-bold text-gold-accent uppercase" x-text="p.caption"></p>
                         </div>
-                    </a>
+                    </div>
                 </template>
             </div>
         </div>
     </section>
 
-    <!-- VR 360 PORTAL (NEW!) -->
-    <section id="vr-tour" class="py-32 bg-forest-deep relative overflow-hidden" x-show="panoramas.length">
+    <!-- 3D VR TOUR -->
+    <section id="vr-tour" class="py-32 bg-forest-deep" x-show="panoramas.length">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
-                <div class="max-w-xl">
-                    <span class="text-gold-accent uppercase font-black tracking-widest text-[10px]">Virtual Reality</span>
-                    <h2 class="text-5xl font-serif text-white mt-4 tracking-tighter">Віртуальна Подорож 360°</h2>
-                    <p class="text-gray-400 mt-4 text-sm">Оберіть локацію, щоб опинитися в самому центрі наших мальовничих краєвидів.</p>
-                </div>
-                <div class="flex flex-wrap gap-3">
-                    <template x-for="(pano, index) in panoramas">
-                        <button @click="loadPano(pano.url)" class="px-6 py-2 rounded-full border border-white/10 text-[10px] font-bold uppercase hover:bg-gold-accent hover:text-forest-deep transition-all" x-text="pano.name"></button>
+            <div class="mb-12">
+                <h2 class="text-4xl font-serif text-white">Віртуальний тур</h2>
+                <div class="flex flex-wrap gap-4 mt-8">
+                    <template x-for="pano in panoramas">
+                        <button @click="loadPano(pano.url)" class="px-8 py-3 rounded-full border border-white/10 text-[11px] font-bold uppercase hover:bg-gold-accent hover:text-forest-deep transition-all" x-text="pano.name"></button>
                     </template>
                 </div>
             </div>
-            <div class="relative glass-card p-3 rounded-[3rem]">
+            <div class="glass-card p-3 rounded-[3rem]">
                 <canvas id="pano-canvas"></canvas>
-                <div class="absolute bottom-10 left-10 pointer-events-none">
-                    <div class="flex items-center gap-3 bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
-                        <div class="w-2 h-2 bg-gold-accent rounded-full animate-ping"></div>
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Інтерактивний режим</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- LIVE PHOTO GALLERY -->
-    <section id="gallery" class="py-32 bg-forest-dark" x-show="photos.length">
-        <div class="max-w-7xl mx-auto px-6">
-            <h2 class="text-5xl font-serif text-white mb-16 italic">Світлини Громади</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <template x-for="p in photos">
-                    <div class="aspect-square overflow-hidden rounded-2xl border border-white/5 group relative cursor-zoom-in">
-                        <img :src="p.url" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
-                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                            <p class="text-[9px] font-bold uppercase text-gold-accent" x-text="p.caption"></p>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </section>
-
-    <!-- VIDEO ARCHIVE -->
-    <section id="videos" class="py-32 bg-forest-deep" x-show="videos.length">
-        <div class="max-w-7xl mx-auto px-6 text-center">
-            <h2 class="text-5xl font-serif text-white mb-4 tracking-tighter uppercase">Відео-Архів</h2>
-            <p class="text-gold-accent text-xs font-bold uppercase tracking-widest mb-16">YouTube Хроніки та Shorts</p>
-            <div class="grid md:grid-cols-3 gap-8">
-                <template x-for="v in videos">
-                    <div class="glass-card p-3 rounded-[2.5rem] overflow-hidden group">
-                        <div class="aspect-video rounded-3xl overflow-hidden relative">
-                            <iframe class="w-full h-full" :src="'https://www.youtube.com/embed/' + v.ytId" frameborder="0" allowfullscreen></iframe>
-                        </div>
-                        <div class="p-6 text-left">
-                            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1" x-text="v.village"></p>
-                            <h4 class="text-lg font-serif text-white group-hover:text-gold-accent transition-colors" x-text="v.title"></h4>
-                        </div>
-                    </div>
-                </template>
             </div>
         </div>
     </section>
@@ -207,28 +194,22 @@
             appId: "1:446551102286:web:08ec3b9a8b3c966dcc441f"
         };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('mainApp', () => ({
                 user: null, isAdmin: false, announcements: [], photos: [], videos: [], panoramas: [],
-                villagesList: [
-                    {id:'prybytky', name:'Прибитки', desc:'Поліське село серед стародавніх лісів.', img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800'},
-                    {id:'sorokopen', name:'Сорокопень', desc:'Геологічний феномен на вершині кряжу.', img:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800'},
-                    {id:'stari', name:'Старі Велідники', desc:'Хранителі прадавньої шляхетської історії.', img:'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=800'},
-                    {id:'novi', name:'Нові Велідники', desc:'Енергія розвитку та віра в спільне майбутнє.', img:'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=800'}
-                ],
+                openVideo: false, videoUrl: '',
+                
                 init() {
                     auth.onAuthStateChanged(u => {
                         this.user = u;
                         this.isAdmin = u && u.email === 'restend88@gmail.com';
                     });
                     
-                    // Listeners for dynamic data
                     db.collection('announcements').orderBy('ts', 'desc').onSnapshot(s => this.announcements = s.docs.map(d => d.data()));
-                    db.collection('village_photos').orderBy('ts', 'desc').limit(15).onSnapshot(s => this.photos = s.docs.map(d => d.data()));
-                    db.collection('village_videos').orderBy('ts', 'desc').limit(6).onSnapshot(s => this.videos = s.docs.map(d => d.data()));
+                    db.collection('village_photos').orderBy('ts', 'desc').onSnapshot(s => this.photos = s.docs.map(d => d.data()));
                     db.collection('panoramas').orderBy('ts', 'desc').onSnapshot(s => {
                         this.panoramas = s.docs.map(d => d.data());
                         if(this.panoramas.length && !window.panoLoaded) {
@@ -236,72 +217,64 @@
                             window.panoLoaded = true;
                         }
                     });
+
+                    db.collection('village_videos').orderBy('ts', 'desc').onSnapshot(s => {
+                        this.videos = s.docs.map(d => d.data());
+                        this.$nextTick(() => { this.initSwiper(); });
+                    });
                 },
+
                 login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); },
                 logout() { auth.signOut().then(() => location.reload()); },
                 
-                loadPano(url) {
-                    if (window.updatePanoTexture) window.updatePanoTexture(url);
-                }
+                playVideo(id) {
+                    this.videoUrl = 'https://www.youtube.com/embed/' + id + '?autoplay=1';
+                    this.openVideo = true;
+                },
+
+                initSwiper() {
+                    new Swiper(".videoSwiper", {
+                        slidesPerView: 1.5,
+                        spaceBetween: 20,
+                        navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
+                        breakpoints: {
+                            640: { slidesPerView: 2.5 },
+                            1024: { slidesPerView: 4.5 }
+                        }
+                    });
+                },
+
+                loadPano(url) { if (window.updatePanoTexture) window.updatePanoTexture(url); }
             }));
         });
 
-        // --- THREE.JS PANORAMA LOGIC ---
+        // Three.js 3D Pano
         let scene, camera, renderer, sphere;
         function initPano() {
             const canvas = document.getElementById('pano-canvas');
             if(!canvas) return;
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-
+            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / 500, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(canvas.clientWidth, 500);
             const geometry = new THREE.SphereGeometry(500, 60, 40);
             geometry.scale(-1, 1, 1);
-            const material = new THREE.MeshBasicMaterial({ color: 0x111111 });
-            sphere = new THREE.Mesh(geometry, material);
+            sphere = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x111111 }));
             scene.add(sphere);
-
             window.updatePanoTexture = (url) => {
-                new THREE.TextureLoader().load(url, (texture) => {
-                    sphere.material.map = texture;
-                    sphere.material.needsUpdate = true;
-                });
+                new THREE.TextureLoader().load(url, (texture) => { sphere.material.map = texture; sphere.material.needsUpdate = true; });
             };
-
             camera.position.set(0, 0, 0.1);
-            let lon = 0, lat = 0;
-            let isUserInteracting = false, onPointerDownPointerX = 0, onPointerDownPointerY = 0, onPointerDownLon = 0, onPointerDownLat = 0;
-
-            canvas.addEventListener('mousedown', (e) => {
-                isUserInteracting = true;
-                onPointerDownPointerX = e.clientX; onPointerDownPointerY = e.clientY;
-                onPointerDownLon = lon; onPointerDownLat = lat;
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (isUserInteracting) {
-                    lon = (onPointerDownPointerX - e.clientX) * 0.1 + onPointerDownLon;
-                    lat = (e.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
-                }
-            });
+            let lon = 0, lat = 0, isUserInteracting = false, onPointerDownPointerX = 0, onPointerDownPointerY = 0, onPointerDownLon = 0, onPointerDownLat = 0;
+            canvas.addEventListener('mousedown', (e) => { isUserInteracting = true; onPointerDownPointerX = e.clientX; onPointerDownPointerY = e.clientY; onPointerDownLon = lon; onPointerDownLat = lat; });
+            document.addEventListener('mousemove', (e) => { if (isUserInteracting) { lon = (onPointerDownPointerX - e.clientX) * 0.1 + onPointerDownLon; lat = (e.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat; } });
             document.addEventListener('mouseup', () => { isUserInteracting = false; });
-
-            function animate() {
-                requestAnimationFrame(animate);
-                lat = Math.max(-85, Math.min(85, lat));
-                const phi = THREE.MathUtils.degToRad(90 - lat);
-                const theta = THREE.MathUtils.degToRad(lon);
-                camera.target = new THREE.Vector3(500 * Math.sin(phi) * Math.cos(theta), 500 * Math.cos(phi), 500 * Math.sin(phi) * Math.sin(theta));
-                camera.lookAt(camera.target);
-                renderer.render(scene, camera);
-            }
+            function animate() { requestAnimationFrame(animate); lat = Math.max(-85, Math.min(85, lat)); const phi = THREE.MathUtils.degToRad(90 - lat); const theta = THREE.MathUtils.degToRad(lon); camera.lookAt(500 * Math.sin(phi) * Math.cos(theta), 500 * Math.cos(phi), 500 * Math.sin(phi) * Math.sin(theta)); renderer.render(scene, camera); }
             animate();
         }
 
-        gsap.registerPlugin(ScrollTrigger);
         window.addEventListener('load', () => {
-            gsap.to('.hero-fade', { opacity: 1, y: 0, duration: 1.5, stagger: 0.4 });
-            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', scrub: true }, y: 250 });
+            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', scrub: true }, y: 200 });
             initPano();
         });
     </script>
