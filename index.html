@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моє Село — Громада Полісся | Глобальний Портал</title>
+    <title>Моє Село — Громада Полісся | Головний Портал</title>
     
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
-    
-    <!-- Libraries -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
-    <!-- Firebase (Compat) -->
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -23,61 +20,34 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        'forest-dark': '#0A2F1F',
-                        'forest-deep': '#061A12',
-                        'gold-accent': '#D4A017',
-                        'gold-bright': '#E8B923',
-                    },
-                    fontFamily: {
-                        serif: ['Playfair Display', 'serif'],
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                    }
+                    colors: { 'forest-dark': '#0A2F1F', 'forest-deep': '#061A12', 'gold-accent': '#D4A017', 'gold-bright': '#E8B923' },
+                    fontFamily: { serif: ['Cormorant Garamond', 'serif'], sans: ['Plus Jakarta Sans', 'sans-serif'] }
                 }
             }
         }
     </script>
 
     <style>
-        body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; }
+        body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
         .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
         .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(212, 160, 23, 0.1); }
-        
-        /* ADVANCED HOVER & PRESS EFFECTS (From your React Example) */
         .village-card { perspective: 1200px; }
-        .card-inner { 
-            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-            transform-style: preserve-3d;
-            border-radius: 2.5rem;
-        }
-        /* Hover: Lift & Tilt */
-        .village-card:hover .card-inner {
-            transform: translateY(-15px) rotateX(4deg) rotateY(2deg);
-            border-color: rgba(212, 160, 23, 0.5);
-            box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8);
-        }
-        /* Press: Inset Scale (0.94) */
-        .village-card:active .card-inner {
-            transform: scale(0.94) translateY(-5px);
-            transition: all 0.15s ease;
-        }
-        /* Image Zoom (1.25) */
+        .card-inner { transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; border-radius: 2.5rem; }
+        .village-card:hover .card-inner { transform: translateY(-15px) rotateX(4deg) rotateY(2deg); border-color: rgba(212, 160, 23, 0.5); box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8); }
+        .village-card:active .card-inner { transform: scale(0.94) translateY(-5px); transition: all 0.15s ease; }
         .card-img-wrap { overflow: hidden; border-radius: 2rem; position: relative; }
         .card-img-wrap img { transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .village-card:hover .card-img-wrap img { transform: scale(1.25); }
-
-        .ann-marquee { animation: scroll-left 20s linear infinite; }
+        .village-card:hover .card-img-wrap img { transform: scale(1.2); }
+        .ann-marquee { animation: scroll-left 25s linear infinite; }
         @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body x-data="mainApp" class="font-sans antialiased">
-
+<body x-data="mainApp">
     <div class="noise-bg"></div>
 
-    <!-- Announcement Bar (Dynamic from Firebase) -->
-    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-gold-accent text-forest-deep py-2 overflow-hidden border-b border-black/10">
+    <!-- Текстова стрічка оголошень -->
+    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-gold-accent text-forest-deep py-1.5 overflow-hidden border-b border-black/10">
         <div class="flex whitespace-nowrap gap-20 ann-marquee font-bold uppercase tracking-widest text-[10px]">
             <template x-for="ann in announcements">
                 <span><span x-text="ann.pin ? '📌' : '📢'"></span> <span x-text="ann.title"></span>: <span x-text="ann.text" class="font-normal"></span></span>
@@ -85,26 +55,24 @@
         </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-[100] px-6 py-12 transition-all duration-500" id="main-nav">
+    <!-- Навігація -->
+    <nav class="fixed w-full z-[100] px-6 py-10 transition-all duration-500" id="main-nav">
         <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full">
             <div class="flex items-center gap-3 cursor-pointer" @click="window.scrollTo({top:0, behavior:'smooth'})">
                 <div class="w-10 h-10 bg-gold-accent rounded-full flex items-center justify-center font-extrabold text-forest-deep">МС</div>
-                <span class="text-xl font-serif tracking-widest font-bold text-gold-accent uppercase">Моє Село</span>
+                <span class="text-xl font-serif font-bold text-gold-accent uppercase tracking-tighter">Моє Село</span>
             </div>
             
-            <div class="hidden md:flex gap-8 text-[10px] uppercase tracking-[0.2em] font-extrabold">
+            <div class="hidden md:flex gap-8 text-[11px] uppercase tracking-widest font-bold">
                 <a href="#villages" class="hover:text-gold-accent transition-all">Громада</a>
-                <a href="#blog" class="hover:text-gold-accent transition-all">Новини</a>
                 <a href="#chat" class="hover:text-gold-accent transition-all">Чат</a>
-                <a x-show="isAdmin" href="admin.html" class="text-red-400">Адмін</a>
+                <!-- Тільки для адміна -->
+                <a x-show="isAdmin" href="admin.html" class="text-white bg-red-600/40 px-3 py-1 rounded-full border border-red-500/50 animate-pulse">⚙️ Панель</a>
             </div>
 
             <div class="flex items-center gap-4">
                 <template x-if="!user">
-                    <button @click="login()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-tighter hover:scale-105 active:scale-95 transition-all">
-                        Увійти
-                    </button>
+                    <button @click="login()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">Увійти</button>
                 </template>
                 <template x-if="user">
                     <div class="flex items-center gap-3 group cursor-pointer" @click="logout()">
@@ -126,30 +94,27 @@
             <div class="absolute inset-0 bg-gradient-to-b from-forest-deep/10 via-forest-deep/60 to-forest-deep"></div>
         </div>
         <div class="relative z-10 text-center px-4">
-            <h2 class="text-gold-accent font-serif italic text-2xl mb-4 opacity-0 hero-fade">Поліська Спадщина</h2>
-            <h1 class="text-6xl md:text-[140px] font-serif font-bold mb-6 text-white opacity-0 hero-fade tracking-tighter leading-none">Спадщина <br> <span class="text-gold-accent italic">Предків</span></h1>
+            <h2 class="text-gold-accent font-serif italic text-3xl mb-4 opacity-0 hero-fade">Поліська Спадщина</h2>
+            <h1 class="text-7xl md:text-[150px] font-serif font-bold mb-6 text-white opacity-0 hero-fade tracking-tighter leading-none">Спадщина <br> <span class="text-gold-accent italic">Предків</span></h1>
             <div class="hero-fade opacity-0 mt-8">
-                <a href="#villages" class="border-2 border-gold-accent text-gold-accent px-12 py-5 rounded-full font-bold uppercase tracking-[0.3em] text-[10px] hover:bg-gold-accent hover:text-forest-deep transition-all">Розпочати подорож</a>
+                <a href="#villages" class="border border-gold-accent/40 text-gold-accent px-12 py-5 rounded-full font-bold uppercase tracking-[0.4em] text-[10px] hover:bg-gold-accent hover:text-forest-deep transition-all backdrop-blur-md">Розпочати подорож</a>
             </div>
         </div>
     </section>
 
-    <!-- Villages Section (Advanced Hover) -->
+    <!-- Villages -->
     <section id="villages" class="py-40 bg-forest-dark relative">
         <div class="max-w-7xl mx-auto px-6">
-            <h2 class="text-5xl font-serif text-center mb-24 uppercase tracking-tighter">Наші Села</h2>
-            
+            <h2 class="text-6xl font-serif text-center mb-24 uppercase tracking-tighter">Наші Села</h2>
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
                 <template x-for="v in villagesList">
                     <a :href="'village.html?v=' + v.id" class="village-card group block h-[550px]">
                         <div class="card-inner glass-card p-3 h-full flex flex-col">
                             <div class="card-img-wrap h-2/3">
                                 <img :src="v.img" class="w-full h-full object-cover rounded-[1.5rem]">
-                                <div class="absolute inset-0 bg-gradient-to-t from-forest-deep to-transparent opacity-60"></div>
                             </div>
                             <div class="p-6">
-                                <span class="text-[10px] text-gold-accent font-black uppercase tracking-widest block mb-2">Громада</span>
-                                <h3 class="text-3xl font-serif text-white mb-2 leading-none" x-text="v.name"></h3>
+                                <h3 class="text-3xl font-serif text-white mb-2" x-text="v.name"></h3>
                                 <p class="text-[11px] text-gray-400 leading-relaxed" x-text="v.desc"></p>
                             </div>
                         </div>
@@ -159,61 +124,23 @@
         </div>
     </section>
 
-    <!-- Dynamic Blog (From Firebase) -->
-    <section id="blog" class="py-32 bg-forest-deep">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex justify-between items-end mb-16">
-                <div>
-                    <h2 class="text-5xl font-serif text-white">Літопис Подій</h2>
-                    <p class="text-gold-accent mt-2 italic font-bold">Останні новини та історії нашої громади</p>
-                </div>
-            </div>
-            
-            <div class="grid md:grid-cols-3 gap-8">
-                <template x-for="post in blogPosts">
-                    <div class="glass-card rounded-[32px] overflow-hidden group hover:border-gold-accent/50 transition-all">
-                        <div class="h-56 overflow-hidden">
-                            <img :src="post.bg" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                        </div>
-                        <div class="p-8">
-                            <span class="text-[9px] font-black bg-gold-accent/20 text-gold-accent px-3 py-1 rounded-full uppercase" x-text="post.tag"></span>
-                            <h4 class="text-2xl font-serif text-white mt-4 mb-3" x-text="post.title"></h4>
-                            <p class="text-xs text-gray-400 leading-relaxed line-clamp-3 mb-6" x-text="post.excerpt"></p>
-                            <div class="flex items-center gap-3 pt-6 border-t border-white/5">
-                                <img :src="post.authorPhoto || 'https://via.placeholder.com/40'" class="w-8 h-8 rounded-full">
-                                <div>
-                                    <p class="text-[10px] font-bold" x-text="post.author"></p>
-                                    <p class="text-[9px] text-gray-500 uppercase" x-text="formatDate(post.ts)"></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </section>
-
-    <!-- Chat (Integrated) -->
-    <section id="chat" class="py-32 bg-forest-dark relative">
+    <!-- Chat -->
+    <section id="chat" class="py-32 bg-forest-dark">
         <div class="max-w-4xl mx-auto px-6">
             <div class="glass-card rounded-[50px] overflow-hidden flex flex-col h-[650px] relative">
                 <div class="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
-                    <h3 class="font-serif text-3xl">Чат Громади</h3>
-                    <span class="text-[10px] font-bold text-green-400 animate-pulse uppercase tracking-widest italic">Live Online</span>
+                    <h3 class="font-serif text-3xl text-gold-accent italic">Чат громади</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></span>
+                        <span class="text-[10px] uppercase font-bold text-gray-400">Live</span>
+                    </div>
                 </div>
                 
                 <div class="flex-1 p-8 overflow-y-auto space-y-6" id="chat-msgs">
-                    <!-- Blur Overlay if not logged in -->
-                    <div x-show="!user" class="absolute inset-0 z-20 backdrop-blur-2xl bg-forest-deep/60 flex flex-col items-center justify-center text-center p-10">
-                        <p class="text-gold-accent font-serif text-3xl mb-4 italic">Заходьте до вогнища</p>
-                        <p class="text-[10px] text-gray-400 mb-10 max-w-xs uppercase tracking-[0.2em] leading-loose">Спілкування доступне лише авторизованим учасникам громади</p>
-                        <button @click="login()" class="bg-gold-accent text-forest-deep px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-widest shadow-2xl">Увійти через Google</button>
-                    </div>
-
                     <template x-for="msg in messages">
-                        <div class="animate-fade-in flex flex-col" :class="msg.uid === user?.uid ? 'items-end' : 'items-start'">
+                        <div class="flex flex-col" :class="msg.uid === user?.uid ? 'items-end' : 'items-start'">
                             <span class="text-[9px] font-black text-gold-accent uppercase mb-1 px-2" x-text="msg.name"></span>
-                            <div class="max-w-[80%] p-4 rounded-3xl text-sm" :class="msg.uid === user?.uid ? 'bg-gold-accent text-forest-deep rounded-tr-none' : 'bg-white/5 text-gray-300 rounded-tl-none border border-white/5'">
+                            <div class="max-w-[80%] p-4 rounded-3xl text-sm shadow-xl" :class="msg.uid === user?.uid ? 'bg-gold-accent text-forest-deep rounded-tr-none' : 'bg-white/5 text-gray-300 rounded-tl-none border border-white/5'">
                                 <span x-text="msg.text"></span>
                             </div>
                         </div>
@@ -221,15 +148,14 @@
                 </div>
 
                 <div class="p-8 bg-black/20 border-t border-white/5 flex gap-4">
-                    <input type="text" x-model="newMsg" @keydown.enter="sendMsg" :disabled="!user" placeholder="Напишіть щось..." class="flex-1 bg-transparent border border-white/10 rounded-full px-8 py-3 outline-none focus:border-gold-accent transition-all disabled:opacity-20">
-                    <button @click="sendMsg" :disabled="!user" class="w-12 h-12 bg-gold-accent text-forest-deep rounded-full flex items-center justify-center font-bold disabled:grayscale">➤</button>
+                    <input type="text" x-model="newMsg" @keydown.enter="sendMsg" :disabled="!user" :placeholder="user ? 'Напишіть щось...' : 'Увійдіть, щоб написати'" class="flex-1 bg-transparent border border-white/10 rounded-full px-8 py-3 outline-none focus:border-gold-accent transition-all disabled:opacity-20">
+                    <button @click="sendMsg" :disabled="!user" class="w-12 h-12 bg-gold-accent text-forest-deep rounded-full flex items-center justify-center font-bold">➤</button>
                 </div>
             </div>
         </div>
     </section>
 
     <script>
-        // FIREBASE CONFIG (Ваш існуючий)
         const firebaseConfig = {
             apiKey: "AIzaSyBRJzUm5zYrsXLSGA7iGGoBZ6bblHnTONs",
             authDomain: "moe-selo-76a49.firebaseapp.com",
@@ -245,80 +171,46 @@
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('mainApp', () => ({
-                user: null,
-                isAdmin: false,
-                announcements: [],
-                blogPosts: [],
-                messages: [],
-                newMsg: '',
+                user: null, isAdmin: false, announcements: [], messages: [], newMsg: '',
                 villagesList: [
-                    {id:'prybutky', name:'Прибитки', desc:'Затишне поліське село серед стародавніх лісів.', img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=600'},
+                    {id:'prybytky', name:'Прибитки', desc:'Затишне поліське село серед стародавніх лісів.', img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=600'},
                     {id:'sorokopen', name:'Сорокопень', desc:'Унікальне село на вершині Словечансько-Овруцького кряжу.', img:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600'},
-                    {id:'stari_velidnyky', name:'Старі Велідники', desc:'Хранителі прадавньої історії та шляхетського коріння.', img:'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=600'},
-                    {id:'novi_velidnyky', name:'Нові Велідники', desc:'Молода енергія громади та віра в спільне майбутнє.', img:'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=600'}
+                    {id:'stari', name:'Старі Велідники', desc:'Хранителі прадавньої історії та шляхетського коріння.', img:'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=600'},
+                    {id:'novi', name:'Нові Велідники', desc:'Молода енергія громади та віра в спільне майбутнє.', img:'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=600'}
                 ],
-
                 init() {
                     auth.onAuthStateChanged(u => {
                         this.user = u;
                         this.isAdmin = u && u.email === 'restend88@gmail.com';
-                        if(u) this.listenChat();
+                        this.listenChat();
                     });
-
-                    // Sync Announcements
                     db.collection('announcements').orderBy('ts', 'desc').onSnapshot(snap => {
                         this.announcements = snap.docs.map(doc => doc.data());
                     });
-
-                    // Sync Blog
-                    db.collection('blog_posts').orderBy('ts', 'desc').limit(6).onSnapshot(snap => {
-                        this.blogPosts = snap.docs.map(doc => doc.data());
-                    });
                 },
-
-                login() {
-                    const provider = new firebase.auth.GoogleAuthProvider();
-                    auth.signInWithPopup(provider);
-                },
-
+                login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); },
                 logout() { auth.signOut(); },
-
                 listenChat() {
                     db.collection('chat_messages').orderBy('ts', 'asc').limitToLast(50).onSnapshot(snap => {
                         this.messages = snap.docs.map(doc => doc.data());
-                        setTimeout(() => {
-                            const container = document.getElementById('chat-msgs');
-                            container.scrollTop = container.scrollHeight;
-                        }, 100);
+                        setTimeout(() => { const c = document.getElementById('chat-msgs'); c.scrollTop = c.scrollHeight; }, 100);
                     });
                 },
-
                 async sendMsg() {
                     if(!this.newMsg.trim()) return;
                     await db.collection('chat_messages').add({
-                        text: this.newMsg,
-                        uid: this.user.uid,
-                        name: this.user.displayName,
+                        text: this.newMsg, uid: this.user.uid, name: this.user.displayName,
                         ts: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     this.newMsg = '';
-                },
-
-                formatDate(ts) {
-                    if(!ts) return '—';
-                    return ts.toDate().toLocaleDateString('uk-UA', {day:'numeric', month:'short'});
                 }
             }));
         });
 
-        // GSAP
         gsap.registerPlugin(ScrollTrigger);
         window.addEventListener('load', () => {
             gsap.to('.hero-fade', { opacity: 1, y: 0, duration: 1.5, stagger: 0.4, ease: "power4.out" });
-            gsap.to('.parallax-bg', { 
-                scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom top', scrub: true }, 
-                y: 300
-            });
+            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom top', scrub: true }, y: 250 });
         });
     </script>
 </body>
