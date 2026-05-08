@@ -65,4 +65,329 @@
 
         <!-- Navigation Tabs -->
         <div class="flex flex-wrap justify-center md:justify-start gap-3 mb-12">
-            <button onclick="switchTab('photo')" class="tab-btn px-6 py-3 rounded-f
+            <button onclick="switchTab('photo')" class="tab-btn px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest active" id="btn-photo">🖼️ Фотогалерея</button>
+            <button onclick="switchTab('video')" class="tab-btn px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest" id="btn-video">▶️ Відео-архів</button>
+            <button onclick="switchTab('pano')" class="tab-btn px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest" id="btn-pano">🌐 360° VR Тур</button>
+            <button onclick="switchTab('ann')" class="tab-btn px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest" id="btn-ann">📢 Оголошення</button>
+            <button onclick="switchTab('blog')" class="tab-btn px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest" id="btn-blog">📝 Блог новин</button>
+        </div>
+
+        <!-- 1. PHOTO SECTION -->
+        <section id="tab-photo" class="tab-content active glass p-6 md:p-10 rounded-[3rem]">
+            <div class="flex items-center justify-between mb-10">
+                <h2 class="text-2xl font-serif font-bold text-[#D4A017]">Завантаження фотографій</h2>
+                <span class="text-[10px] bg-white/5 px-4 py-1 rounded-full opacity-50 uppercase font-bold">Local Upload + ImgBB</span>
+            </div>
+            <div class="grid lg:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] uppercase font-black text-gray-500 mb-2 ml-2">Належність до села</label>
+                        <select id="p-village" class="w-full p-4 rounded-2xl">
+                            <option value="prybytky">🏡 Прибитки</option>
+                            <option value="sorokopen">⛰️ Сорокопень</option>
+                            <option value="stari">🏰 Старі Велідники</option>
+                            <option value="novi">🌻 Нові Велідники</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-black text-gray-500 mb-2 ml-2">Виберіть файл на комп'ютері</label>
+                        <input type="file" id="p-file" accept="image/*" onchange="previewImg(this, 'p-preview')" class="w-full p-2 text-xs text-gray-400">
+                    </div>
+                    <input type="text" id="p-cap" placeholder="Короткий підпис (напр: Школа восени)..." class="w-full p-4 rounded-2xl">
+                    <button onclick="uploadToImgBB('photo')" id="p-btn" class="w-full btn-save py-5 rounded-full uppercase tracking-widest">Зберегти у галерею</button>
+                </div>
+                <div class="relative border-2 border-dashed border-white/10 rounded-[2.5rem] bg-black/20 flex items-center justify-center overflow-hidden min-h-[300px]">
+                    <img id="p-preview" class="max-h-[280px] rounded-xl shadow-2xl">
+                    <div id="p-hint" class="absolute text-[10px] uppercase font-bold opacity-20">Прев'ю зображення</div>
+                </div>
+            </div>
+            <div class="mt-16">
+                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-gray-500 mb-8 pb-2 border-b border-white/5">Архів завантажених фото:</h3>
+                <div id="photo-list" class="grid grid-cols-3 md:grid-cols-6 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- 2. VIDEO SECTION -->
+        <section id="tab-video" class="tab-content glass p-6 md:p-10 rounded-[3rem]">
+            <h2 class="text-2xl font-serif font-bold text-[#D4A017] mb-10">Додати YouTube відео або Shorts</h2>
+            <div class="grid lg:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <select id="v-village" class="w-full p-4 rounded-2xl">
+                        <option value="prybytky">Прибитки</option>
+                        <option value="sorokopen">Сорокопень</option>
+                        <option value="stari">Старі Велідники</option>
+                        <option value="novi">Нові Велідники</option>
+                    </select>
+                    <input type="text" id="v-url" oninput="parseYT(this.value)" placeholder="Вставте посилання на відео або Shorts..." class="w-full p-4 rounded-2xl">
+                    <input type="text" id="v-title" placeholder="Назва відео (буде підписано на сайті)..." class="w-full p-4 rounded-2xl">
+                    <button onclick="saveVideo()" id="v-btn" class="w-full btn-save py-5 rounded-full uppercase tracking-widest">Додати до відео-архіву</button>
+                </div>
+                <div id="v-preview" class="aspect-video bg-black/40 rounded-[2.5rem] flex items-center justify-center overflow-hidden border border-white/10 shadow-inner">
+                    <span class="opacity-20 uppercase font-black text-xs tracking-widest">YouTube Preview</span>
+                </div>
+            </div>
+            <div class="mt-16 space-y-3" id="video-list"></div>
+        </section>
+
+        <!-- 3. PANO VR SECTION -->
+        <section id="tab-pano" class="tab-content glass p-6 md:p-10 rounded-[3rem]">
+            <h2 class="text-2xl font-serif font-bold text-[#D4A017] mb-4">Створення 3D VR-Локацій</h2>
+            <p class="text-gray-500 text-xs uppercase mb-10 tracking-widest italic font-bold">Тільки для сферичних панорам (Google Camera)</p>
+            <div class="grid lg:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <input type="file" id="pano-file" accept="image/*" class="w-full p-2 text-xs text-gray-400">
+                    <input type="text" id="pano-name" placeholder="Назва локації (напр: Кряж на заході сонця)..." class="w-full p-4 rounded-2xl">
+                    <textarea id="pano-desc" placeholder="Короткий опис того, що ми побачимо навколо..." class="w-full p-4 rounded-2xl h-24"></textarea>
+                    <button onclick="uploadToImgBB('pano')" id="pano-btn" class="w-full btn-save py-5 rounded-full uppercase tracking-widest">Створити 3D Точку</button>
+                </div>
+                <div class="p-8 bg-black/30 rounded-[2.5rem] border border-white/5 text-[11px] text-gray-400 leading-relaxed space-y-4">
+                    <p class="font-bold text-[#D4A017] uppercase tracking-widest">💡 Як це працює:</p>
+                    <p>1. Ви завантажуєте сферичне фото "розгортку".<br>2. Система ImgBB зберігає його на хмарі.<br>3. Сайт автоматично "натягує" це фото на 3D-сферу для відвідувачів.</p>
+                </div>
+            </div>
+            <div class="mt-16 space-y-3" id="pano-list"></div>
+        </section>
+
+        <!-- 4. ANNOUNCEMENTS SECTION -->
+        <section id="tab-ann" class="tab-content glass p-6 md:p-10 rounded-[3rem]">
+            <h2 class="text-2xl font-serif font-bold text-[#D4A017] mb-10">📢 Оголошення (Золотий рядок)</h2>
+            <div class="max-w-2xl space-y-6">
+                <input id="an-title" type="text" placeholder="Заголовок (напр: ЗБОРИ)..." class="w-full p-4 rounded-2xl">
+                <textarea id="an-text" placeholder="Текст повідомлення, що буде бігти у верху сайту..." class="w-full p-4 rounded-2xl h-32"></textarea>
+                <button onclick="saveAnn()" class="w-full btn-save py-5 rounded-full uppercase tracking-widest">Опублікувати для всіх</button>
+            </div>
+            <div class="mt-16 space-y-4" id="ann-list"></div>
+        </section>
+
+        <!-- 5. BLOG SECTION -->
+        <section id="tab-blog" class="tab-content glass p-6 md:p-10 rounded-[3rem]">
+            <h2 class="text-2xl font-serif font-bold text-[#D4A017] mb-10">📝 Додати статтю до Літопису</h2>
+            <div class="space-y-6">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <input id="b-title" type="text" placeholder="Заголовок статті..." class="w-full p-4 rounded-2xl">
+                    <input id="b-tag" type="text" placeholder="Тег (напр: Історія, Традиції, Природа)..." class="w-full p-4 rounded-2xl">
+                </div>
+                <textarea id="b-text" placeholder="Повний текст новини або історії..." class="w-full p-4 rounded-2xl h-48"></textarea>
+                <div>
+                    <label class="block text-[10px] uppercase font-black text-gray-500 mb-2 ml-2">Фото обкладинки (тільки посилання або ImgBB)</label>
+                    <input id="b-img" type="text" placeholder="URL картинки..." class="w-full p-4 rounded-2xl">
+                </div>
+                <button onclick="saveBlog()" id="b-btn" class="w-full btn-save py-5 rounded-full uppercase tracking-widest">Додати до блогу</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const IMGBB_API_KEY = "3c421de99c0f04a959c0cd4aaa4491f6"; 
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBRJzUm5zYrsXLSGA7iGGoBZ6bblHnTONs",
+            authDomain: "moe-selo-76a49.firebaseapp.com",
+            projectId: "moe-selo-76a49",
+            storageBucket: "moe-selo-76a49.firebasestorage.app",
+            messagingSenderId: "446551102286",
+            appId: "1:446551102286:web:08ec3b9a8b3c966dcc441f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const ADMIN_EMAIL = 'restend88@gmail.com';
+
+        // --- AUTH LOGIC ---
+        auth.onAuthStateChanged(user => {
+            if (user && user.email === ADMIN_EMAIL) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('admin-info').textContent = "Адміністратор: " + user.displayName;
+                loadData();
+            } else if (user) {
+                alert('Помилка: цей акаунт не має прав адміна.'); 
+                auth.signOut().then(()=>location.reload());
+            }
+        });
+
+        function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+
+        // --- TAB SWITCHER (FIXED) ---
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + id).classList.add('active');
+        }
+
+        // --- PREVIEW FILE ---
+        function previewImg(input, targetId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById(targetId).src = e.target.result;
+                    document.getElementById('p-hint').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- UPLOAD TO IMGBB (BASE64 STABLE METHOD) ---
+        async function uploadToImgBB(type) {
+            const fileInput = type === 'photo' ? document.getElementById('p-file') : document.getElementById('pano-file');
+            const btn = type === 'photo' ? document.getElementById('p-btn') : document.getElementById('pano-btn');
+            
+            if (!fileInput.files[0]) return alert('Будь ласка, спочатку виберіть файл!');
+
+            btn.disabled = true; 
+            btn.textContent = '⏳ ЗАВАНТАЖЕННЯ НА СЕРВЕР...';
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                try {
+                    const base64Data = reader.result.split(',')[1];
+                    const formData = new FormData();
+                    formData.append("image", base64Data);
+
+                    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const url = result.data.url;
+
+                        if (type === 'photo') {
+                            await db.collection('village_photos').add({
+                                village: document.getElementById('p-village').value,
+                                url: url,
+                                caption: document.getElementById('p-cap').value || '',
+                                ts: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } else {
+                            await db.collection('panoramas').add({
+                                name: document.getElementById('pano-name').value || 'Нова точка',
+                                desc: document.getElementById('pano-desc').value || '',
+                                url: url,
+                                ts: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                        
+                        alert('✨ Успішно! Дані додано в базу.');
+                        fileInput.value = '';
+                        if(document.getElementById('p-preview')) document.getElementById('p-preview').src = '';
+                        if(document.getElementById('p-hint')) document.getElementById('p-hint').style.display = 'block';
+                    } else {
+                        throw new Error(result.error.message);
+                    }
+                } catch (error) {
+                    alert('Помилка: ' + error.message);
+                } finally {
+                    btn.disabled = false; 
+                    btn.textContent = type === 'photo' ? 'ЗБЕРЕГТИ У ГАЛЕРЕЮ' : 'СТВОРИТИ 3D ТОЧКУ';
+                }
+            };
+        }
+
+        // --- YOUTUBE LOGIC (SHORTS SUPPORTED) ---
+        let currentYTId = '';
+        function parseYT(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(shorts\/)|(\?v=)|(&v=))([^#&?]*).*/;
+            const match = url.match(regExp);
+            currentYTId = (match && match[10].length === 11) ? match[10] : null;
+
+            if(currentYTId) {
+                document.getElementById('v-preview').innerHTML = `<img src="https://img.youtube.com/vi/${currentYTId}/mqdefault.jpg" class="w-full h-full object-cover">`;
+            } else {
+                document.getElementById('v-preview').innerHTML = '<span class="opacity-10 font-bold uppercase text-[10px]">ID не знайдено</span>';
+            }
+        }
+
+        async function saveVideo() {
+            if(!currentYTId) return alert('Вставте правильне посилання!');
+            await db.collection('village_videos').add({
+                village: document.getElementById('v-village').value,
+                ytId: currentYTId,
+                title: document.getElementById('v-title').value || 'Без назви',
+                ts: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Відео додано!');
+            document.getElementById('v-url').value = '';
+            document.getElementById('v-title').value = '';
+            document.getElementById('v-preview').innerHTML = '';
+        }
+
+        // --- OTHER DATA SAVE ---
+        async function saveAnn() {
+            const title = document.getElementById('an-title').value;
+            const text = document.getElementById('an-text').value;
+            if(!title || !text) return alert('Заповніть поля!');
+            await db.collection('announcements').add({
+                title, text, ts: firebase.firestore.FieldValue.serverTimestamp(), pin: true
+            });
+            alert('Опубліковано!');
+            document.getElementById('an-title').value = '';
+            document.getElementById('an-text').value = '';
+        }
+
+        async function saveBlog() {
+            const title = document.getElementById('b-title').value;
+            const tag = document.getElementById('b-tag').value;
+            const text = document.getElementById('b-text').value;
+            const img = document.getElementById('b-img').value;
+            if(!title || !text) return alert('Заповніть заголовок і текст!');
+
+            await db.collection('blog_posts').add({
+                title, tag, text, bg: img,
+                excerpt: text.substring(0, 150) + '...',
+                author: auth.currentUser.displayName,
+                authorPhoto: auth.currentUser.photoURL,
+                ts: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Статтю опубліковано!');
+            document.getElementById('b-title').value = '';
+            document.getElementById('b-text').value = '';
+        }
+
+        // --- REAL-TIME LISTENERS ---
+        function loadData() {
+            db.collection('announcements').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('ann-list').innerHTML = s.docs.map(d => `
+                <div class="item-card p-5 rounded-2xl flex justify-between items-center">
+                    <div class="text-xs"><b>${d.data().title}</b>: <span class="opacity-60">${d.data().text}</span></div>
+                    <button onclick="del('announcements','${d.id}')" class="text-red-500 font-bold hover:bg-red-500/10 px-3 py-1 rounded-full transition">🗑</button>
+                </div>`).join('');
+            });
+
+            db.collection('village_photos').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('photo-list').innerHTML = s.docs.map(d => `
+                <div class="relative group aspect-square">
+                    <img src="${d.data().url}" class="w-full h-full object-cover rounded-2xl border border-white/5">
+                    <button onclick="del('village_photos','${d.id}')" class="absolute inset-0 bg-red-600/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-2xl transition font-black text-[9px] tracking-tighter">ВИДАЛИТИ</button>
+                </div>`).join('');
+            });
+
+            db.collection('village_videos').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('video-list').innerHTML = s.docs.map(d => `
+                <div class="item-card p-4 rounded-2xl flex justify-between items-center text-xs">
+                    <span>📺 <b>${d.data().title}</b> <i class="opacity-40 italic">(${d.data().village})</i></span>
+                    <button onclick="del('village_videos','${d.id}')" class="text-red-500 font-bold hover:bg-red-500/10 px-3 py-1 rounded-full transition">🗑</button>
+                </div>`).join('');
+            });
+
+            db.collection('panoramas').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('pano-list').innerHTML = s.docs.map(d => `
+                <div class="item-card p-4 rounded-2xl flex justify-between items-center text-xs">
+                    <span>🌐 <b>${d.data().name}</b></span>
+                    <button onclick="del('panoramas','${d.id}')" class="text-red-500 font-bold hover:bg-red-500/10 px-3 py-1 rounded-full transition">🗑</button>
+                </div>`).join('');
+            });
+        }
+
+        async function del(c, id) { if(confirm('Видалити назавжди?')) await db.collection(c).doc(id).delete(); }
+    </script>
+</body>
+</html>
