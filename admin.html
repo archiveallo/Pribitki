@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚙️ Адмін-панель — Поліський Портал</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  FIREBASE — вставте той самий конфіг що і в portal.html  ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, deleteDoc, doc,
+  query, orderBy, onSnapshot, serverTimestamp, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ════════════════════════════════════════════════
+// 🔧 ВАШ КОНФІГ (той самий що в portal.html)
+// ════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAryIotorFvMy2vuc2I0_nSFXWAlwLDgJA",
+  authDomain: "moeselo3-447a3.firebaseapp.com",
+  projectId: "moeselo3-447a3",
+  storageBucket: "moeselo3-447a3.firebasestorage.app",
+  messagingSenderId: "342660470608",
+  appId: "1:342660470608:web:824a3ac5ebadd59e0c3e55",
+  measurementId: "G-51W3V6ZRSS"
+};
+
+// ════════════════════════════════════════════════
+// 🛡️ СПИСОК АДМІНІВ — вставте ваш Gmail
+// ════════════════════════════════════════════════
+const ADMIN_EMAILS = [
+  "restend88@gmail.com"
+  // можна додати ще: "grincenkolidia@gmail.com"
+];
+// ════════════════════════════════════════════════
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const gp   = new GoogleAuthProvider();
+
+// ─── Стан ──────────────────────────────────────
+let currentUser = null;
+let unsubscribers = [];
+
+// ─── Helpers ───────────────────────────────────
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const ts2str = ts => ts?.toDate
+  ? ts.toDate().toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'})
+  : '—';
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+function setLoading(btn, yes) {
+  if(yes) { btn.dataset.orig = btn.textContent; btn.textContent = '⏳ Зберігаю…'; btn.disabled = true; }
+  else { btn.textContent = btn.dataset.orig || 'Зберегти'; btn.disabled = false; }
+}
+
+// ─── Auth state ────────────────────────────────
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  document.getElementById('screen-login').style.display  = !user ? 'flex' : 'none';
+  document.getElementById('screen-denied').style.display = (user && !isAdmin) ? 'flex' : 'none';
+  document.getElementById('screen-admin').style.display  = isAdmin ? 'block' : 'none';
+  if(isAdmin) {
+    document.getElementById('admin-name').textContent = user.displayName || user.email;
+    document.getElementById('admin-photo').src = user.photoURL || '';
+    loadAllCollections();
+  }
+});
+
+window._login  = () => signInWithPopup(auth, gp).catch(e => { if(e.code !== 'auth/popup-closed-by-user') toast('Помилка: '+e.message,'err'); });
+window._logout = () => { unsubscribers.forEach(u=>u()); unsubscribers=[]; signOut(auth); };
+
+// ─── Tab switching ──────────────────────────────
+window._tab = id => {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('on', b.dataset.tab===id));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('on', p.id==='tab-'+id));
+};
+
+// ════════════════════════════════════════════════
+//  BLOG — колекція "blog_posts"
+// ════════════════════════════════════════════════
+window._saveBlog = async () => {
+  const btn = document.getElementById('btn-blog');
+  const title  = document.getElementById('b-title').value.trim();
+  const tag    = document.getElementById('b-tag').value.trim() || 'Загальне';
+  const text   = document.getElementById('b-text').value.trim();
+  const imgUrl = document.getElementById('b-img').value.trim();
+  if(!title || !text) { toast('Заповніть заголовок і текст','err'); return; }
+  setLoading(btn, true);
+  try {
+    await addDoc(collection(db,'blog_posts'), {
+      title, tag,
+      excerpt: text.slice(0,140)+'…',
+      text, imgUrl,
+      author: currentUser.displayName || currentUser.email,
+      authorPhoto: currentUser.photoURL || '',
+      bg: imgUrl || 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&h=250&fit=crop',
+      ts: serverTimestamp()
+    });
+    ['b-title','b-tag','b-text','b-img'].forEach(id => document.getElementById(id).value='');
+    toast('✅ Статтю опубліковано!');
+  } catch(e) { toast('Помилка: '+e.message,'err'); }
+  setLoading(btn, false);
+};
+
+function loadBlog() {
+  const q = query(collection(db,'blog_posts'), orderBy('ts','desc'));
+  const unsub = onSnapshot(q, snap => {
+    const el = document.getElementById('list-blog');
+    el.innerHTML = snap.empty ? '<div class="empty">Ще немає статей</div>' :
+      snap.docs.map(d => {
+        const x = d.data();
+        return `<div class="item">
+          <div class="item-main">
+            ${x.bg ? `<img src="${esc(x.bg)}" class="item-thumb">` : ''}
+            <div class="item-info">
+              <div class="item-tag">${esc(x.tag||'')}</div>
+              <div class="item-title">${esc(x.title)}</div>
+              <div class="item-meta">${esc(x.author||'')} · ${ts2str(x.ts)}</div>
+            </div>
+          </div>
+          <button class="del-btn" onclick="_del('blog_posts','${d.id}','статтю')">🗑</button>
+        </div>`;
+      }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════════════════════════════════
+//  ФОТО — колекція "village_photos"
+// ════════════════════════════════════════════════
+window._savePhoto = async () => {
+  const btn = document.getElementById('btn-photo');
+  const village = document.getElementById('p-village').value;
+  const url     = document.getElementById('p-url').value.trim();
+  const caption = document.getElementById('p-caption').value.trim();
+  if(!url) { toast('Вставте посилання на фото','err'); return; }
+  setLoading(btn, true);
+  try {
+    await addDoc(collection(db,'village_photos'), {
+      village, url, caption,
+      ts: serverTimestamp()
+    });
+    document.getElementById('p-url').value='';
+    document.getElementById('p-caption').value='';
+    toast('✅ Фото додано до «'+villageLabel(village)+'»!');
+  } catch(e) { toast('Помилка: '+e.message,'err'); }
+  setLoading(btn, false);
+};
+
+function loadPhotos() {
+  const q = query(collection(db,'village_photos'), orderBy('ts','desc'));
+  const unsub = onSnapshot(q, snap => {
+    const el = document.getElementById('list-photos');
+    el.innerHTML = snap.empty ? '<div class="empty">Ще немає фотографій</div>' :
+      snap.docs.map(d => {
+        const x = d.data();
+        return `<div class="item">
+          <div class="item-main">
+            <img src="${esc(x.url)}" class="item-thumb" onerror="this.style.display='none'">
+            <div class="item-info">
+              <div class="item-tag">${villageLabel(x.village)}</div>
+              <div class="item-title">${esc(x.caption||'Без підпису')}</div>
+              <div class="item-meta url-preview">${esc(x.url.slice(0,55))}…</div>
+            </div>
+          </div>
+          <button class="del-btn" onclick="_del('village_photos','${d.id}','фото')">🗑</button>
+        </div>`;
+      }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════════════════════════════════
+//  ВІДЕО — колекція "village_videos"
+// ════════════════════════════════════════════════
+window._saveVideo = async () => {
+  const btn = document.getElementById('btn-video');
+  const village = document.getElementById('v-village').value;
+  const raw     = document.getElementById('v-yt').value.trim();
+  const title   = document.getElementById('v-title').value.trim() || 'Без назви';
+  const ytId    = extractYtId(raw);
+  if(!ytId) { toast('Не вдалось розпізнати YouTube посилання','err'); return; }
+  setLoading(btn, true);
+  try {
+    await addDoc(collection(db,'village_videos'), {
+      village, ytId, title,
+      ts: serverTimestamp()
+    });
+    document.getElementById('v-yt').value='';
+    document.getElementById('v-title').value='';
+    toast('✅ Відео додано до «'+villageLabel(village)+'»!');
+  } catch(e) { toast('Помилка: '+e.message,'err'); }
+  setLoading(btn, false);
+};
+
+function extractYtId(raw) {
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /embed\/([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/
+  ];
+  for(const p of patterns) { const m = raw.match(p); if(m) return m[1]; }
+  return null;
+}
+
+function loadVideos() {
+  const q = query(collection(db,'village_videos'), orderBy('ts','desc'));
+  const unsub = onSnapshot(q, snap => {
+    const el = document.getElementById('list-videos');
+    el.innerHTML = snap.empty ? '<div class="empty">Ще немає відео</div>' :
+      snap.docs.map(d => {
+        const x = d.data();
+        return `<div class="item">
+          <div class="item-main">
+            <img src="https://img.youtube.com/vi/${esc(x.ytId)}/mqdefault.jpg" class="item-thumb yt-thumb">
+            <div class="item-info">
+              <div class="item-tag">${villageLabel(x.village)}</div>
+              <div class="item-title">${esc(x.title)}</div>
+              <div class="item-meta">youtube.com/watch?v=${esc(x.ytId)}</div>
+            </div>
+          </div>
+          <button class="del-btn" onclick="_del('village_videos','${d.id}','відео')">🗑</button>
+        </div>`;
+      }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════════════════════════════════
+//  ПАНОРАМА 360 — колекція "panoramas"
+// ════════════════════════════════════════════════
+window._savePano = async () => {
+  const btn  = document.getElementById('btn-pano');
+  const name = document.getElementById('pn-name').value.trim();
+  const url  = document.getElementById('pn-url').value.trim();
+  const desc = document.getElementById('pn-desc').value.trim();
+  if(!name || !url) { toast('Назва і посилання обов\'язкові','err'); return; }
+  setLoading(btn, true);
+  try {
+    await addDoc(collection(db,'panoramas'), {
+      name, url, desc,
+      ts: serverTimestamp()
+    });
+    ['pn-name','pn-url','pn-desc'].forEach(id => document.getElementById(id).value='');
+    toast('✅ Панораму додано!');
+  } catch(e) { toast('Помилка: '+e.message,'err'); }
+  setLoading(btn, false);
+};
+
+function loadPanos() {
+  const q = query(collection(db,'panoramas'), orderBy('ts','desc'));
+  const unsub = onSnapshot(q, snap => {
+    const el = document.getElementById('list-panos');
+    el.innerHTML = snap.empty ? '<div class="empty">Ще немає панорам</div>' :
+      snap.docs.map(d => {
+        const x = d.data();
+        return `<div class="item">
+          <div class="item-main">
+            <div class="item-icon">🌐</div>
+            <div class="item-info">
+              <div class="item-title">${esc(x.name)}</div>
+              <div class="item-meta">${esc((x.desc||'').slice(0,60))}…</div>
+            </div>
+          </div>
+          <button class="del-btn" onclick="_del('panoramas','${d.id}','панораму')">🗑</button>
+        </div>`;
+      }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════════════════════════════════
+//  ПОДІЇ — колекція "events"
+// ════════════════════════════════════════════════
+window._saveEvent = async () => {
+  const btn  = document.getElementById('btn-event');
+  const title = document.getElementById('ev-title').value.trim();
+  const desc  = document.getElementById('ev-desc').value.trim();
+  const date  = document.getElementById('ev-date').value;
+  if(!title || !date) { toast('Назва і дата обов\'язкові','err'); return; }
+  setLoading(btn, true);
+  try {
+    const d = new Date(date);
+    await addDoc(collection(db,'events'), {
+      title, desc, date,
+      day:   d.getDate(),
+      month: d.toLocaleDateString('uk-UA',{month:'short'}),
+      ts: serverTimestamp()
+    });
+    ['ev-title','ev-desc','ev-date'].forEach(id => document.getElementById(id).value='');
+    toast('✅ Подію додано до календаря!');
+  } catch(e) { toast('Помилка: '+e.message,'err'); }
+  setLoading(btn, false);
+};
+
+function loadEvents() {
+  const q = query(collection(db,'events'), orderBy('date','asc'));
+  const unsub = onSnapshot(q, snap => {
+    const el = document.getElementById('list-events');
+    el.innerHTML = snap.empty ? '<div class="empty">Ще немає подій</div>' :
+      snap.docs.map(d => {
+        const x = d.data();
+        return `<div class="item">
+          <div class="item-main">
+            <div class="item-date-badge"><b>${x.day}</b><span>${x.month}</span></div>
+            <div class="item-info">
+              <div class="item-title">${esc(x.title)}</div>
+              <div class="item-meta">${esc(x.desc||'')}</div>
+            </div>
+          </div>
+          <button class="del-btn" onclick="_del('events','${d.id}','подію')">🗑</button>
+        </div>`;
+      }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════════════════════════════════
+//  ОГОЛОШЕННЯ — колекція "announcements"
+// ════════════════════════════════════════════════
+window._saveAnn = async () => {
+  const btn   = document.getElementById('btn-ann');
+  const title = document.getElementById('an-title').value.trim();
+  const text  = document.getElementById('an-text').value.trim();
+  const pin   = document.getElementById('an-pin').checked;
+  if(!title || !text) { toast('Заповніть всі поля','err'); return; }
+  setLoading(btn, true);
+  try {
+    await addDoc(collection(db,'announcements'), {
+      title, text, pin,
+      author: currentUser.displayName || currentUser.email,
+      ts: serverTimestamp()
+    });
+    ['an-title','an-text'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('an-pin').checked = false;
+    toast('✅ Оголошення опубліковано!');
+  } catch(e) { toast('Помилка: '+e.message,'err'); }
+  setLoading(btn, false);
+};
+
+function loadAnn() {
+  const q = query(collection(db,'announcements'), orderBy('ts','desc'));
+  const unsub = onSnapshot(q, snap => {
+    const el = document.getElementById('list-ann');
+    el.innerHTML = snap.empty ? '<div class="empty">Ще немає оголошень</div>' :
+      snap.docs.map(d => {
+        const x = d.data();
+        return `<div class="item ${x.pin?'pinned':''}">
+          <div class="item-main">
+            <div class="item-icon">${x.pin?'📌':'📢'}</div>
+            <div class="item-info">
+              <div class="item-title">${esc(x.title)}</div>
+              <div class="item-meta">${esc(x.text.slice(0,70))}… · ${esc(x.author||'')} · ${ts2str(x.ts)}</div>
+            </div>
+          </div>
+          <button class="del-btn" onclick="_del('announcements','${d.id}','оголошення')">🗑</button>
+        </div>`;
+      }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ─── Universal delete ───────────────────────────
+window._del = async (coll, id, label) => {
+  if(!confirm(`Видалити ${label}? Цю дію неможливо скасувати.`)) return;
+  try {
+    await deleteDoc(doc(db, coll, id));
+    toast(`🗑 ${label.charAt(0).toUpperCase()+label.slice(1)} видалено`);
+  } catch(e) { toast('Помилка видалення: '+e.message,'err'); }
+};
+
+// ─── Load all ──────────────────────────────────
+function loadAllCollections() {
+  unsubscribers.forEach(u=>u());
+  unsubscribers = [];
+  loadBlog();
+  loadPhotos();
+  loadVideos();
+  loadPanos();
+  loadEvents();
+  loadAnn();
+}
+
+// ─── Village labels ─────────────────────────────
+function villageLabel(v) {
+  return { prybutky:'🏡 Прибутки', sorokopen:'⛰️ Сорокопень',
+           stari:'🏰 Старі Велідники', novi:'🌻 Нові Велідники' }[v] || v;
+}
+
+// ─── YouTube preview ────────────────────────────
+window._ytPreview = () => {
+  const raw = document.getElementById('v-yt').value.trim();
+  const id  = extractYtId(raw);
+  const el  = document.getElementById('yt-preview');
+  if(id) {
+    el.innerHTML = `<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" style="width:200px;border-radius:8px;margin-top:8px;">
+      <div style="font-size:12px;margin-top:4px;color:#4ade80;">✅ ID розпізнано: ${id}</div>`;
+  } else if(raw) {
+    el.innerHTML = `<div style="font-size:12px;color:#f87171;margin-top:6px;">❌ Не вдалось розпізнати ID</div>`;
+  } else { el.innerHTML = ''; }
+};
+
+// ─── Photo URL preview ──────────────────────────
+window._photoPreview = () => {
+  const url = document.getElementById('p-url').value.trim();
+  const el  = document.getElementById('photo-preview');
+  if(url) {
+    el.innerHTML = `<img src="${url}" style="max-width:220px;max-height:120px;border-radius:8px;margin-top:8px;object-fit:cover;" onerror="this.outerHTML='<div style=\'color:#f87171;font-size:12px;margin-top:6px;\'>❌ Фото не завантажується</div>'">`;
+  } else { el.innerHTML = ''; }
+};
+</script>
+
+<style>
+:root{
+  --bg:#0a1a0a;--bg2:#111d11;--bg3:#162116;
+  --gold:#c9a227;--gold-l:#f0c84a;--cream:#f5eed8;
+  --glass:rgba(255,255,255,.05);--gb:rgba(255,255,255,.1);
+  --green:#4ade80;--red:#f87171;--blue:#60a5fa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--cream);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(150deg,#091508 0%,#162a16 60%,#0d2010 100%);z-index:-1;}
+
+/* ─── SCREENS ─── */
+.screen{min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;text-align:center;}
+#screen-login{display:flex;}
+
+/* LOGIN */
+.login-card{background:var(--glass);border:1px solid var(--gb);border-radius:28px;padding:52px 48px;max-width:420px;width:100%;}
+.login-card h1{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:700;color:var(--gold);margin:14px 0 8px;}
+.login-card p{font-size:14px;color:rgba(245,238,216,.5);margin-bottom:32px;line-height:1.6;}
+.lock-icon{font-size:58px;}
+
+/* DENIED */
+.denied-card{background:var(--glass);border:1px solid rgba(248,113,113,.3);border-radius:22px;padding:40px;max-width:380px;}
+.denied-card h2{font-size:22px;font-weight:700;color:var(--red);margin:12px 0 8px;}
+.denied-card p{font-size:13px;color:rgba(245,238,216,.5);margin-bottom:18px;}
+
+/* ADMIN SCREEN */
+#screen-admin{display:none;}
+
+/* ─── HEADER ─── */
+.adm-hdr{background:rgba(6,14,6,.94);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,162,39,.2);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.adm-logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:8px;}
+.adm-user{display:flex;align-items:center;gap:10px;}
+#admin-photo{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--gold);}
+#admin-name{font-size:13px;font-weight:700;}
+.badge-admin{background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;text-transform:uppercase;}
+
+/* ─── LAYOUT ─── */
+.adm-body{max-width:960px;margin:0 auto;padding:28px 20px 60px;}
+
+/* ─── TABS ─── */
+.tab-bar{display:flex;gap:4px;margin-bottom:24px;flex-wrap:wrap;}
+.tab-btn{background:transparent;border:1px solid transparent;border-radius:10px;padding:9px 16px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:rgba(245,238,216,.5);transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.tab-btn:hover,.tab-btn.on{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.35);color:var(--gold-l);}
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+
+/* ─── CARDS ─── */
+.adm-card{background:var(--glass);border:1px solid var(--gb);border-radius:18px;padding:24px 26px;margin-bottom:20px;}
+.adm-card h3{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold-l);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field-row.single{grid-template-columns:1fr;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(245,238,216,.4);}
+.field input,.field textarea,.field select{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;
+  padding:10px 14px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--cream);
+  outline:none;transition:border-color .2s;width:100%;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--gold);}
+.field textarea{resize:vertical;min-height:90px;}
+.field select option{background:#162116;}
+.field input::placeholder,.field textarea::placeholder{color:rgba(245,238,216,.25);}
+.field input[type="date"]{color-scheme:dark;}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:13px;cursor:pointer;}
+.checkbox-row input{width:16px;height:16px;cursor:pointer;accent-color:var(--gold);}
+.hint{font-size:11px;color:rgba(245,238,216,.3);margin-top:4px;line-height:1.5;}
+
+/* ─── BUTTONS ─── */
+.btn-save{background:linear-gradient(135deg,var(--gold) 0%,#9e7518 100%);border:none;border-radius:11px;padding:11px 28px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#140e00;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-save:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 22px rgba(201,162,39,.3);}
+.btn-save:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.btn-out{background:var(--glass);border:1px solid var(--gb);border-radius:9px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:rgba(245,238,216,.55);cursor:pointer;transition:all .2s;}
+.btn-out:hover{border-color:rgba(248,113,113,.4);color:var(--red);}
+.btn-g-small{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--cream);cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;}
+.btn-g-small:hover{border-color:var(--gold);color:var(--gold-l);}
+
+/* ─── ITEMS LIST ─── */
+.items-section{margin-top:20px;}
+.items-label{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(245,238,216,.3);margin-bottom:10px;}
+.items-list{display:flex;flex-direction:column;gap:8px;}
+.item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .2s;}
+.item:hover{border-color:rgba(255,255,255,.12);}
+.item.pinned{border-color:rgba(201,162,39,.3);background:rgba(201,162,39,.04);}
+.item-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+.item-thumb{width:64px;height:44px;border-radius:7px;object-fit:cover;flex-shrink:0;}
+.item-thumb.yt-thumb{width:80px;height:45px;}
+.item-icon{font-size:28px;flex-shrink:0;width:44px;text-align:center;}
+.item-date-badge{text-align:center;background:rgba(201,162,39,.12);border-radius:8px;padding:6px 10px;flex-shrink:0;min-width:48px;}
+.item-date-badge b{display:block;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);line-height:1;}
+.item-date-badge span{font-size:10px;color:rgba(245,238,216,.5);text-transform:uppercase;}
+.item-info{flex:1;min-width:0;}
+.item-tag{font-size:10px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+.item-title{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item-meta{font-size:11px;color:rgba(245,238,216,.4);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.url-preview{font-family:monospace;font-size:10px;}
+.del-btn{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px;flex-shrink:0;transition:all .2s;color:var(--red);}
+.del-btn:hover{background:rgba(248,113,113,.18);border-color:rgba(248,113,113,.4);}
+.empty{text-align:center;padding:24px;font-size:13px;color:rgba(245,238,216,.25);}
+
+/* ─── STATS ROW ─── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;}
+.stat-card{background:var(--glass);border:1px solid var(--gb);border-radius:12px;padding:14px;text-align:center;}
+.stat-num{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--gold);line-height:1;}
+.stat-lbl{font-size:10px;color:rgba(245,238,216,.4);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e3a1e;border:1px solid rgba(74,222,128,.3);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:700;color:var(--green);z-index:999;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.err{background:#3a1e1e;border-color:rgba(248,113,113,.3);color:var(--red);}
+
+/* ─── DIVIDER ─── */
+.divider{height:1px;background:linear-gradient(to right,transparent,rgba(201,162,39,.25),transparent);margin:20px 0;}
+
+@media(max-width:600px){
+  .field-row{grid-template-columns:1fr;}
+  .adm-hdr{padding:0 14px;}
+  .adm-body{padding:18px 14px 40px;}
+  .tab-btn{font-size:12px;padding:7px 11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SCREEN: LOGIN ═══ -->
+<div id="screen-login" class="screen">
+  <div class="login-card">
+    <div class="lock-icon">🌲</div>
+    <h1>Адмін-панель</h1>
+    <p>Поліський Портал — управління контентом.<br>Вхід дозволено лише авторизованим адміністраторам.</p>
+    <button class="btn-g-small" style="margin:0 auto;padding:12px 28px;font-size:14px;" onclick="_login()">
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Увійти через Google
+    </button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: DENIED ═══ -->
+<div id="screen-denied" class="screen">
+  <div class="denied-card">
+    <div style="font-size:48px;">🚫</div>
+    <h2>Доступ заборонено</h2>
+    <p>Ваш Google-акаунт не є адміністратором цього порталу. Зверніться до власника сайту.</p>
+    <button class="btn-out" onclick="_logout()">← Вийти</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: ADMIN ═══ -->
+<div id="screen-admin">
+
+  <!-- HEADER -->
+  <header class="adm-hdr">
+    <div class="adm-logo">⚙️ Адмін-панель</div>
+    <div class="adm-user">
+      <span class="badge-admin">ADMIN</span>
+      <img id="admin-photo" src="" alt="">
+      <span id="admin-name"></span>
+      <button class="btn-out" onclick="_logout()">Вийти</button>
+    </div>
+  </header>
+
+  <div class="adm-body">
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="cnt-blog">—</div><div class="stat-lbl">Статей</div></div>
+      <div class="stat-card"><div class="stat-num" id="cnt-photo">—</div><div class="stat-lbl">Фото</div></div>
+      <div class="stat-card"><div class="stat-num" id="cnt-video">—</div><div class="stat-lbl">Відео</div></div>
+      <div class="stat-card"><div class="stat-num" id="cnt-pano">—</div><div class="stat-lbl">Панорам</div></div>
+      <div class="stat-card"><div class="stat-num" id="cnt-event">—</div><div class="stat-lbl">Подій</div></div>
+      <div class="stat-card"><div class="stat-num" id="cnt-ann">—</div><div class="stat-lbl">Оголошень</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+      <button class="tab-btn on" data-tab="blog"  onclick="_tab('blog')">📝 Блог</button>
+      <button class="tab-btn"    data-tab="photo" onclick="_tab('photo')">🖼️ Фото</button>
+      <button class="tab-btn"    data-tab="video" onclick="_tab('video')">▶️ Відео</button>
+      <button class="tab-btn"    data-tab="pano"  onclick="_tab('pano')">🌐 Панорама 360°</button>
+      <button class="tab-btn"    data-tab="event" onclick="_tab('event')">📅 Календар</button>
+      <button class="tab-btn"    data-tab="ann"   onclick="_tab('ann')">📢 Оголошення</button>
+    </div>
+
+    <!-- ── TAB: BLOG ── -->
+    <div id="tab-blog" class="tab-pane on">
+      <div class="adm-card">
+        <h3>📝 Нова стаття до блогу</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Заголовок *</label>
+            <input id="b-title" placeholder="Наприклад: Знахідка на кряжі…">
+          </div>
+          <div class="field">
+            <label>Тег / Рубрика</label>
+            <select id="b-tag">
+              <option value="Прибутки">🏡 Прибутки</option>
+              <option value="Сорокопень">⛰️ Сорокопень</option>
+              <option value="Старі Велідники">🏰 Старі Велідники</option>
+              <option value="Нові Велідники">🌻 Нові Велідники</option>
+              <option value="Громада">👥 Громада</option>
+              <option value="Історія">📜 Історія</option>
+              <option value="Природа">🌿 Природа</option>
+              <option value="Геологія">💎 Геологія</option>
+              <option value="Спогади">💭 Спогади</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Текст статті *</label>
+            <textarea id="b-text" placeholder="Ваша стаття…" style="min-height:130px;"></textarea>
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Посилання на фото (обкладинка)</label>
+            <input id="b-img" placeholder="https://…" oninput="_photoPreview()">
+            <span class="hint">Посилання на зображення для картки статті. Можна з Google Photos (права кнопка → Копіювати адресу зображення).</span>
+            <div id="photo-preview-blog"></div>
+          </div>
+        </div>
+        <button id="btn-blog" class="btn-save" onclick="_saveBlog()">💾 Опублікувати статтю</button>
+      </div>
+
+      <div class="items-section">
+        <div class="items-label">Опубліковані статті</div>
+        <div class="items-list" id="list-blog"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: PHOTO ── -->
+    <div id="tab-photo" class="tab-pane">
+      <div class="adm-card">
+        <h3>🖼️ Додати фото до галереї</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Село *</label>
+            <select id="p-village">
+              <option value="prybutky">🏡 Прибутки</option>
+              <option value="sorokopen">⛰️ Сорокопень</option>
+              <option value="stari">🏰 Старі Велідники</option>
+              <option value="novi">🌻 Нові Велідники</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Підпис до фото</label>
+            <input id="p-caption" placeholder="Наприклад: Вид з кряжу, 2024">
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Посилання на фото (URL) *</label>
+            <input id="p-url" placeholder="https://…" oninput="_photoPreview()">
+            <span class="hint">📱 З Google Photos: відкрийте фото → три крапки → «Поділитись або зберегти» → «Копіювати посилання». Або правою кнопкою → «Копіювати адресу зображення».</span>
+            <div id="photo-preview"></div>
+          </div>
+        </div>
+        <button id="btn-photo" class="btn-save" onclick="_savePhoto()">💾 Додати фото</button>
+      </div>
+
+      <div class="items-section">
+        <div class="items-label">Додані фото</div>
+        <div class="items-list" id="list-photos"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: VIDEO ── -->
+    <div id="tab-video" class="tab-pane">
+      <div class="adm-card">
+        <h3>▶️ Додати відео з YouTube</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Село *</label>
+            <select id="v-village">
+              <option value="prybutky">🏡 Прибутки</option>
+              <option value="sorokopen">⛰️ Сорокопень</option>
+              <option value="stari">🏰 Старі Велідники</option>
+              <option value="novi">🌻 Нові Велідники</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Назва відео</label>
+            <input id="v-title" placeholder="Наприклад: Природа Полісся — весна 2024">
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Посилання YouTube або ID відео *</label>
+            <input id="v-yt" placeholder="https://youtu.be/… або youtube.com/watch?v=…" oninput="_ytPreview()">
+            <span class="hint">Підтримуються формати: youtu.be/…, youtube.com/watch?v=…, або просто 11-символьний ID.</span>
+            <div id="yt-preview"></div>
+          </div>
+        </div>
+        <button id="btn-video" class="btn-save" onclick="_saveVideo()">💾 Додати відео</button>
+      </div>
+
+      <div class="items-section">
+        <div class="items-label">Додані відео</div>
+        <div class="items-list" id="list-videos"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: PANO ── -->
+    <div id="tab-pano" class="tab-pane">
+      <div class="adm-card">
+        <h3>🌐 Нова панорама 360°</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Назва локації *</label>
+            <input id="pn-name" placeholder="Наприклад: Вершина кряжу — Сорокопень">
+          </div>
+          <div class="field">
+            <label>URL зображення (equirectangular) *</label>
+            <input id="pn-url" placeholder="https://…">
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Опис локації</label>
+            <textarea id="pn-desc" placeholder="Що видно з цієї точки…" style="min-height:70px;"></textarea>
+          </div>
+        </div>
+        <div class="adm-card" style="background:rgba(96,165,250,.05);border-color:rgba(96,165,250,.15);margin-bottom:16px;">
+          <div style="font-size:13px;color:rgba(245,238,216,.65);line-height:1.7;">
+            <b style="color:var(--blue);">📱 Як зробити панораму з телефону:</b><br>
+            1. Зробіть звичайну широку фотографію або використайте «Сферична панорама» в Google Camera.<br>
+            2. Завантажте фото у Google Drive або Imgur.<br>
+            3. У Google Drive: правою кнопкою → «Отримати посилання» → «Всі, хто має посилання» → скопіюйте ID файлу з URL і вставте у формат:<br>
+            <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:12px;">https://drive.google.com/uc?export=view&id=ВАШ_ID</code><br>
+            4. Imgur: завантажте → натисніть правою кнопкою на фото → «Копіювати адресу зображення».
+          </div>
+        </div>
+        <button id="btn-pano" class="btn-save" onclick="_savePano()">💾 Додати панораму</button>
+      </div>
+
+      <div class="items-section">
+        <div class="items-label">Додані панорами</div>
+        <div class="items-list" id="list-panos"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: EVENT ── -->
+    <div id="tab-event" class="tab-pane">
+      <div class="adm-card">
+        <h3>📅 Нова подія до календаря</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Назва події *</label>
+            <input id="ev-title" placeholder="Наприклад: День села Прибутки">
+          </div>
+          <div class="field">
+            <label>Дата *</label>
+            <input id="ev-date" type="date">
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Опис події</label>
+            <textarea id="ev-desc" placeholder="Де, коли, що відбудеться…" style="min-height:70px;"></textarea>
+          </div>
+        </div>
+        <button id="btn-event" class="btn-save" onclick="_saveEvent()">💾 Додати подію</button>
+      </div>
+
+      <div class="items-section">
+        <div class="items-label">Найближчі події</div>
+        <div class="items-list" id="list-events"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: ANN ── -->
+    <div id="tab-ann" class="tab-pane">
+      <div class="adm-card">
+        <h3>📢 Нове оголошення</h3>
+        <div class="field-row single">
+          <div class="field">
+            <label>Заголовок оголошення *</label>
+            <input id="an-title" placeholder="Наприклад: Субботник у Прибутках">
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label>Текст оголошення *</label>
+            <textarea id="an-text" placeholder="Деталі…" style="min-height:90px;"></textarea>
+          </div>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="an-pin">
+          📌 Закріпити оголошення вгорі (важливе)
+        </label>
+        <button id="btn-ann" class="btn-save" onclick="_saveAnn()">💾 Опублікувати</button>
+      </div>
+
+      <div class="items-section">
+        <div class="items-label">Активні оголошення</div>
+        <div class="items-list" id="list-ann"></div>
+      </div>
+    </div>
+
+  </div><!-- /adm-body -->
+</div><!-- /screen-admin -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// Лічильники у stats-row — оновлюємо при зміні списків
+const statsMap = {
+  'list-blog':   'cnt-blog',
+  'list-photos': 'cnt-photo',
+  'list-videos': 'cnt-video',
+  'list-panos':  'cnt-pano',
+  'list-events': 'cnt-event',
+  'list-ann':    'cnt-ann',
+};
+const obs = new MutationObserver(() => {
+  for(const [listId, statId] of Object.entries(statsMap)) {
+    const el = document.getElementById(listId);
+    const stat = document.getElementById(statId);
+    if(el && stat) {
+      const n = el.querySelectorAll('.item').length;
+      stat.textContent = n;
+    }
+  }
+});
+document.querySelectorAll('.items-list').forEach(el => obs.observe(el,{childList:true,subtree:true}));
+
+// Встановити сьогоднішню дату за замовчуванням
+const dateInput = document.getElementById('ev-date');
+if(dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
