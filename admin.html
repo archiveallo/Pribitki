@@ -2,106 +2,125 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>⚙️ Центр Керування Громадою</title>
+    <title>⚙️ Центр Керування Громадою 2.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+
     <style>
-        body { background-color: #061A12; color: #F5EED8; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: #061A12; color: #F5EED8; font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; }
         .glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
-        .tab-btn.active { background: #D4A017; color: #061A12; }
-        input, textarea, select { background: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; outline: none; }
+        .tab-btn.active { background: #D4A017; color: #061A12; border-color: #D4A017; }
+        input, textarea, select { background: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; outline: none; transition: 0.3s; }
         input:focus { border-color: #D4A017 !important; }
+        .loader { border-top-color: #D4A017; animation: spinner 0.6s linear infinite; }
+        @keyframes spinner { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-4 md:p-10">
 
     <!-- Auth Guard -->
     <div id="auth-screen" class="fixed inset-0 z-[100] bg-[#061A12] flex items-center justify-center">
-        <div class="text-center">
-            <h1 class="text-4xl font-serif mb-8 text-[#D4A017]">Вхід в систему керування</h1>
-            <button onclick="login()" class="bg-[#D4A017] text-[#061A12] px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:scale-105 transition">Увійти як Адмін</button>
+        <div class="glass p-12 rounded-[3rem] text-center">
+            <div class="text-6xl mb-4">🌲</div>
+            <h1 class="text-3xl font-serif mb-8 text-[#D4A017]">Вхід в адмін-панель</h1>
+            <button onclick="login()" class="bg-[#D4A017] text-[#061A12] px-10 py-4 rounded-full font-bold uppercase tracking-widest">Увійти як restend88</button>
         </div>
     </div>
 
+    <!-- Main Content -->
     <div id="admin-content" class="hidden max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-10 pb-6 border-b border-white/10">
-            <div>
-                <h1 class="text-3xl font-serif font-bold text-[#D4A017]">⚙️ ПАНЕЛЬ АДМІНІСТРАТОРА</h1>
-                <p id="admin-email" class="text-[10px] opacity-50 uppercase tracking-widest mt-1"></p>
-            </div>
-            <button onclick="auth.signOut()" class="text-red-400 border border-red-400/30 px-6 py-2 rounded-full hover:bg-red-400 hover:text-white transition">Вийти</button>
+            <h1 class="text-2xl font-serif font-bold text-[#D4A017]">⚙️ CONTROL PANEL 2.0</h1>
+            <button onclick="auth.signOut().then(() => location.reload())" class="text-red-400 text-xs uppercase font-bold">Вийти</button>
         </header>
 
-        <!-- Navigation Tabs -->
-        <div class="flex flex-wrap gap-2 mb-8">
-            <button onclick="switchTab('blog')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest active">📝 Блог</button>
-            <button onclick="switchTab('photos')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest">🖼️ Фото</button>
-            <button onclick="switchTab('videos')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest">▶️ Відео</button>
-            <button onclick="switchTab('pano')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest">🌐 360°</button>
-            <button onclick="switchTab('events')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest">📅 Події</button>
-            <button onclick="switchTab('ann')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest">📢 Оголошення</button>
+        <!-- Navigation -->
+        <div class="flex flex-wrap gap-3 mb-10">
+            <button onclick="switchTab('photo')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold active">🖼️ ФОТО</button>
+            <button onclick="switchTab('video')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold">▶️ ВІДЕО</button>
+            <button onclick="switchTab('pano')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold">🌐 360° VR</button>
+            <button onclick="switchTab('blog')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold">📝 БЛОГ</button>
+            <button onclick="switchTab('events')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold">📅 ПОДІЇ</button>
+            <button onclick="switchTab('ann')" class="tab-btn px-6 py-2 rounded-full border border-white/10 text-xs font-bold">📢 ОГОЛОШЕННЯ</button>
         </div>
 
-        <!-- BLOG TAB -->
-        <section id="tab-blog" class="tab-content glass p-8 rounded-[2rem]">
-            <h2 class="text-2xl font-serif mb-6 text-[#D4A017]">Нова стаття</h2>
-            <div class="grid gap-4">
-                <input id="b-title" type="text" placeholder="Заголовок..." class="p-4 rounded-2xl">
-                <select id="b-tag" class="p-4 rounded-2xl">
-                    <option value="Прибутки">Прибутки</option>
-                    <option value="Сорокопень">Сорокопень</option>
-                    <option value="Велідники">Велідники</option>
-                    <option value="Історія">Історія</option>
-                </select>
-                <textarea id="b-text" placeholder="Текст статті..." class="p-4 rounded-2xl h-40"></textarea>
-                <input id="b-img" type="text" placeholder="URL картинки..." class="p-4 rounded-2xl">
-                <button onclick="saveBlog()" class="bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Опублікувати</button>
+        <!-- PHOTO SECTION -->
+        <section id="tab-photo" class="tab-content glass p-8 rounded-[2.5rem]">
+            <h2 class="text-xl font-serif mb-6 text-[#D4A017]">Завантажити фото з комп'ютера</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <select id="p-village" class="w-full p-4 rounded-2xl">
+                        <option value="prybytky">Прибитки</option>
+                        <option value="sorokopen">Сорокопень</option>
+                        <option value="stari">Старі Велідники</option>
+                        <option value="novi">Нові Велідники</option>
+                    </select>
+                    <input type="file" id="p-file" accept="image/*" onchange="previewImg(this, 'p-preview')" class="w-full p-3 text-sm">
+                    <input type="text" id="p-cap" placeholder="Підпис до фото..." class="w-full p-4 rounded-2xl">
+                    <button onclick="uploadPhoto()" id="p-btn" class="w-full bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Зберегти фото</button>
+                </div>
+                <div class="flex items-center justify-center border-2 border-dashed border-white/10 rounded-[2rem] overflow-hidden bg-black/20 min-h-[200px]">
+                    <img id="p-preview" class="max-h-full">
+                </div>
             </div>
-            <div id="blog-list" class="mt-10 space-y-2"></div>
+            <div id="photo-list" class="mt-12 grid grid-cols-2 md:grid-cols-5 gap-4"></div>
         </section>
 
-        <!-- PHOTO TAB -->
-        <section id="tab-photos" class="tab-content hidden glass p-8 rounded-[2rem]">
-            <h2 class="text-2xl font-serif mb-6 text-[#D4A017]">Додати фото в галерею</h2>
-            <div class="grid gap-4">
-                <select id="p-village" class="p-4 rounded-2xl">
-                    <option value="prybytky">Прибутки</option>
-                    <option value="sorokopen">Сорокопень</option>
-                    <option value="stari">Старі Велідники</option>
-                    <option value="novi">Нові Велідники</option>
-                </select>
-                <input id="p-url" type="text" placeholder="URL фото (з Google Photos або ін.)..." class="p-4 rounded-2xl">
-                <input id="p-cap" type="text" placeholder="Підпис..." class="p-4 rounded-2xl">
-                <button onclick="savePhoto()" class="bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Додати в галерею</button>
+        <!-- VIDEO SECTION -->
+        <section id="tab-video" class="tab-content hidden glass p-8 rounded-[2.5rem]">
+            <h2 class="text-xl font-serif mb-6 text-[#D4A017]">Додати відео (YouTube)</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <select id="v-village" class="w-full p-4 rounded-2xl">
+                        <option value="prybytky">Прибитки</option>
+                        <option value="sorokopen">Сорокопень</option>
+                        <option value="stari">Старі Велідники</option>
+                        <option value="novi">Нові Велідники</option>
+                    </select>
+                    <input type="text" id="v-url" oninput="previewYT(this.value)" placeholder="Вставте посилання на YouTube..." class="w-full p-4 rounded-2xl">
+                    <input type="text" id="v-title" placeholder="Назва відео..." class="w-full p-4 rounded-2xl">
+                    <button onclick="saveVideo()" class="w-full bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Додати відео</button>
+                </div>
+                <div id="v-preview" class="aspect-video bg-black/40 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <p class="text-xs opacity-30 uppercase font-bold">Прев'ю відео</p>
+                </div>
             </div>
-            <div id="photo-list" class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            <div id="video-list" class="mt-12 space-y-2"></div>
         </section>
 
-        <!-- (Інші секції Videos, Events, Pano будуть додані за такою ж логікою нижче) -->
-        <section id="tab-ann" class="tab-content hidden glass p-8 rounded-[2rem]">
-            <h2 class="text-2xl font-serif mb-6 text-[#D4A017]">📢 Оголошення (рядок що біжить)</h2>
-            <div class="grid gap-4">
-                <input id="an-title" type="text" placeholder="Заголовок..." class="p-4 rounded-2xl">
-                <textarea id="an-text" placeholder="Короткий текст..." class="p-4 rounded-2xl h-20"></textarea>
-                <button onclick="saveAnn()" class="bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Запустити стрічку</button>
+        <!-- 360 VR SECTION -->
+        <section id="tab-pano" class="tab-content hidden glass p-8 rounded-[2.5rem]">
+            <h2 class="text-xl font-serif mb-6 text-[#D4A017]">Додати 360° Панораму</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <input type="file" id="pano-file" accept="image/*" class="w-full p-3 text-sm">
+                    <input type="text" id="pano-name" placeholder="Назва локації..." class="w-full p-4 rounded-2xl">
+                    <textarea id="pano-desc" placeholder="Опис того, що на панорамі..." class="w-full p-4 rounded-2xl h-24"></textarea>
+                    <button onclick="uploadPano()" id="pano-btn" class="w-full bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Завантажити VR-точку</button>
+                </div>
+                <div class="bg-black/20 rounded-2xl p-6 text-xs text-gray-400 leading-loose border border-white/5 italic">
+                    Завантажуйте фото у форматі "Equirectangular" (панорами з Google Camera). Система автоматично підготує їх для 3D-перегляду на сайті.
+                </div>
+            </div>
+            <div id="pano-list" class="mt-10 space-y-2"></div>
+        </section>
+
+        <!-- OTHER SECTIONS (Announcements, Events, Blog) -->
+        <section id="tab-ann" class="tab-content hidden glass p-8 rounded-[2.5rem]">
+            <h2 class="text-xl font-serif mb-6 text-[#D4A017]">Оголошення</h2>
+            <div class="space-y-4">
+                <input id="an-title" type="text" placeholder="Заголовок..." class="w-full p-4 rounded-2xl">
+                <textarea id="an-text" placeholder="Короткий текст..." class="w-full p-4 rounded-2xl h-20"></textarea>
+                <button onclick="saveAnn()" class="bg-[#D4A017] text-[#061A12] px-10 py-4 rounded-full font-bold uppercase">Запустити</button>
             </div>
             <div id="ann-list" class="mt-10 space-y-2"></div>
         </section>
-        
-        <section id="tab-events" class="tab-content hidden glass p-8 rounded-[2rem]">
-            <h2 class="text-2xl font-serif mb-6 text-[#D4A017]">📅 Календар громади</h2>
-            <div class="grid gap-4">
-                <input id="ev-title" type="text" placeholder="Назва події..." class="p-4 rounded-2xl">
-                <input id="ev-date" type="date" class="p-4 rounded-2xl">
-                <textarea id="ev-desc" placeholder="Деталі..." class="p-4 rounded-2xl"></textarea>
-                <button onclick="saveEvent()" class="bg-[#D4A017] text-[#061A12] py-4 rounded-full font-bold uppercase">Додати подію</button>
-            </div>
-            <div id="event-list" class="mt-10 space-y-2"></div>
-        </section>
-
     </div>
 
     <script>
@@ -109,94 +128,146 @@
             apiKey: "AIzaSyBRJzUm5zYrsXLSGA7iGGoBZ6bblHnTONs",
             authDomain: "moe-selo-76a49.firebaseapp.com",
             projectId: "moe-selo-76a49",
-            storageBucket: "moe-selo-76a49.firebasestorage.app",
+            storageBucket: "moe-selo-76a49.appspot.com", // Перевірте чи закінчується на .appspot.com
             messagingSenderId: "446551102286",
             appId: "1:446551102286:web:08ec3b9a8b3c966dcc441f"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const adminEmail = 'restend88@gmail.com';
+        const storage = firebase.storage();
+
+        const ADMIN_EMAIL = 'restend88@gmail.com';
 
         auth.onAuthStateChanged(user => {
-            if (user && user.email === adminEmail) {
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('admin-content').classList.remove('hidden');
-                document.getElementById('admin-email').textContent = user.email;
-                loadData();
+            if (user && user.email === ADMIN_EMAIL) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                loadAll();
             } else if (user) {
-                alert('Доступ заборонено!'); auth.signOut();
+                alert('Доступ лише для restend88!'); auth.signOut();
             }
         });
 
         function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
 
-        function switchTab(tabId) {
+        function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + id).classList.remove('hidden');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
         }
 
-        // --- Save Logic ---
-        async function saveBlog() {
-            await db.collection('blog_posts').add({
-                title: document.getElementById('b-title').value,
-                tag: document.getElementById('b-tag').value,
-                text: document.getElementById('b-text').value,
-                bg: document.getElementById('b-img').value,
-                excerpt: document.getElementById('b-text').value.substring(0, 100) + '...',
-                ts: firebase.firestore.FieldValue.serverTimestamp(),
-                author: auth.currentUser.displayName, authorPhoto: auth.currentUser.photoURL
-            });
-            alert('Збережено!');
+        function previewImg(input, targetId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(targetId).src = URL.createObjectURL(input.files[0]);
+            }
         }
 
-        async function savePhoto() {
+        // --- UPLOAD LOGIC ---
+        async function uploadPhoto() {
+            const file = document.getElementById('p-file').files[0];
+            if(!file) return alert('Оберіть файл!');
+            const btn = document.getElementById('p-btn');
+            btn.disabled = true; btn.textContent = '⏳ ЗАВАНТАЖЕННЯ...';
+
+            const ref = storage.ref(`gallery/${Date.now()}_${file.name}`);
+            await ref.put(file);
+            const url = await ref.getDownloadURL();
+
             await db.collection('village_photos').add({
                 village: document.getElementById('p-village').value,
-                url: document.getElementById('p-url').value,
+                url: url,
                 caption: document.getElementById('p-cap').value,
                 ts: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert('Фото додано!');
+
+            btn.disabled = false; btn.textContent = 'ЗБЕРЕГТИ ФОТО';
+            alert('Готово!');
+        }
+
+        async function uploadPano() {
+            const file = document.getElementById('pano-file').files[0];
+            if(!file) return alert('Оберіть панораму!');
+            const btn = document.getElementById('pano-btn');
+            btn.disabled = true;
+
+            const ref = storage.ref(`panoramas/${Date.now()}_${file.name}`);
+            await ref.put(file);
+            const url = await ref.getDownloadURL();
+
+            await db.collection('panoramas').add({
+                name: document.getElementById('pano-name').value,
+                desc: document.getElementById('pano-desc').value,
+                url: url,
+                ts: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Панораму додано!');
+            btn.disabled = false;
+        }
+
+        function previewYT(url) {
+            const id = url.split('v=')[1]?.split('&')[0] || url.split('be/')[1];
+            if(id) document.getElementById('v-preview').innerHTML = `<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="w-full">`;
+        }
+
+        async function saveVideo() {
+            const url = document.getElementById('v-url').value;
+            const id = url.split('v=')[1]?.split('&')[0] || url.split('be/')[1];
+            await db.collection('village_videos').add({
+                village: document.getElementById('v-village').value,
+                ytId: id,
+                title: document.getElementById('v-title').value,
+                ts: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Відео додано!');
         }
 
         async function saveAnn() {
             await db.collection('announcements').add({
                 title: document.getElementById('an-title').value,
                 text: document.getElementById('an-text').value,
-                ts: firebase.firestore.FieldValue.serverTimestamp(), pin: true
-            });
-            alert('Оголошення запущено!');
-        }
-        
-        async function saveEvent() {
-            const d = new Date(document.getElementById('ev-date').value);
-            await db.collection('events').add({
-                title: document.getElementById('ev-title').value,
-                desc: document.getElementById('ev-desc').value,
-                day: d.getDate(),
-                month: d.toLocaleString('uk-UA', {month:'short'}),
-                date: document.getElementById('ev-date').value,
                 ts: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert('Подію додано!');
+            alert('Оголошення опубліковано!');
         }
 
-        function loadData() {
-            // Тут будуть слухачі для списків видалення, аналогічно до вашого файлу
-            db.collection('announcements').onSnapshot(s => {
+        // --- LOAD LISTS ---
+        function loadAll() {
+            db.collection('announcements').orderBy('ts','desc').onSnapshot(s => {
                 document.getElementById('ann-list').innerHTML = s.docs.map(d => `
-                    <div class="bg-black/20 p-4 rounded-xl flex justify-between">
-                        <span>${d.data().title}</span>
-                        <button onclick="deleteDoc('announcements','${d.id}')" class="text-red-500">🗑</button>
-                    </div>
-                `).join('');
+                    <div class="bg-black/40 p-4 rounded-2xl flex justify-between items-center text-xs">
+                        <span><b>${d.data().title}</b>: ${d.data().text}</span>
+                        <button onclick="del('announcements','${d.id}')" class="text-red-500">🗑</button>
+                    </div>`).join('');
+            });
+
+            db.collection('village_photos').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('photo-list').innerHTML = s.docs.map(d => `
+                    <div class="relative group">
+                        <img src="${d.data().url}" class="w-full h-24 object-cover rounded-xl">
+                        <button onclick="del('village_photos','${d.id}')" class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition">🗑</button>
+                    </div>`).join('');
+            });
+
+            db.collection('village_videos').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('video-list').innerHTML = s.docs.map(d => `
+                    <div class="bg-black/40 p-3 rounded-xl flex justify-between items-center">
+                        <span class="text-xs">📺 ${d.data().title} (${d.data().village})</span>
+                        <button onclick="del('village_videos','${d.id}')" class="text-red-500">🗑</button>
+                    </div>`).join('');
+            });
+
+            db.collection('panoramas').orderBy('ts','desc').onSnapshot(s => {
+                document.getElementById('pano-list').innerHTML = s.docs.map(d => `
+                    <div class="bg-black/40 p-3 rounded-xl flex justify-between items-center">
+                        <span class="text-xs">🌐 ${d.data().name}</span>
+                        <button onclick="del('panoramas','${d.id}')" class="text-red-500">🗑</button>
+                    </div>`).join('');
             });
         }
 
-        async function deleteDoc(coll, id) { if(confirm('Видалити?')) await db.collection(coll).doc(id).delete(); }
+        async function del(coll, id) { if(confirm('Видалити?')) await db.collection(coll).doc(id).delete(); }
     </script>
 </body>
 </html>
