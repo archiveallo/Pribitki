@@ -1,115 +1,195 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="uk" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моє Село — Громада Полісся</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,700;1,700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>Моє Село — Громада Полісся | Цифровий Портал</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 'forest-dark': '#0A2F1F', 'forest-deep': '#061A12', 'gold-accent': '#D4A017', 'gold-bright': '#E8B923' },
+                    fontFamily: { serif: ['Cormorant Garamond', 'serif'], sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
     <style>
         body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
         .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(212, 160, 23, 0.1); }
+        
+        /* Advanced Hover Effects */
         .village-card { perspective: 1200px; }
         .card-inner { transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; border-radius: 2.5rem; }
         .village-card:hover .card-inner { transform: translateY(-15px) rotateX(4deg) rotateY(2deg); border-color: #D4A017; box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8); }
         .village-card:active .card-inner { transform: scale(0.94); transition: all 0.1s; }
-        .card-img-wrap { overflow: hidden; border-radius: 2rem; }
-        .card-img-wrap img { transition: transform 1s; }
-        .village-card:hover .card-img-wrap img { transform: scale(1.2); }
+        
+        /* 3D Pano Canvas */
+        #pano-canvas { width: 100%; height: 500px; border-radius: 2.5rem; cursor: grab; background: #000; }
+        #pano-canvas:active { cursor: grabbing; }
+
         .ann-marquee { animation: scroll-left 30s linear infinite; }
         @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #D4A017; border-radius: 10px; }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="mainApp">
+    <div class="noise-bg"></div>
 
-    <!-- Announcements -->
-    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-[#D4A017] text-[#061A12] py-2 overflow-hidden font-bold uppercase tracking-widest text-[10px]">
-        <div class="flex whitespace-nowrap gap-20 ann-marquee">
+    <!-- Announcement Bar -->
+    <div x-show="announcements.length" class="fixed top-0 w-full z-[110] bg-gold-accent text-forest-deep py-2 overflow-hidden border-b border-black/10 shadow-xl">
+        <div class="flex whitespace-nowrap gap-20 ann-marquee font-black uppercase tracking-widest text-[10px]">
             <template x-for="ann in announcements">
-                <span>📢 <span x-text="ann.title"></span>: <span x-text="ann.text" class="font-normal"></span></span>
+                <span>📢 <span x-text="ann.title"></span>: <span x-text="ann.text" class="font-bold opacity-80"></span></span>
             </template>
         </div>
     </div>
 
     <!-- Navigation -->
-    <nav class="fixed w-full z-[100] px-6 py-10 transition-all duration-500">
+    <nav class="fixed w-full z-[100] px-6 py-12 transition-all duration-500" id="main-nav">
         <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
-                <div class="w-10 h-10 bg-[#D4A017] rounded-full flex items-center justify-center font-extrabold text-[#061A12]">МС</div>
-                <span class="text-xl font-serif font-bold text-[#D4A017] uppercase tracking-tighter">Моє Село</span>
+            <div class="flex items-center gap-3 cursor-pointer" @click="window.scrollTo({top:0, behavior:'smooth'})">
+                <div class="w-10 h-10 bg-gold-accent rounded-full flex items-center justify-center font-extrabold text-forest-deep">МС</div>
+                <span class="text-xl font-serif font-bold text-gold-accent uppercase tracking-tighter">Моє Село</span>
             </div>
             
-            <div class="hidden md:flex gap-8 text-[11px] font-bold uppercase tracking-widest">
-                <a href="#villages" class="hover:text-[#D4A017]">Громада</a>
-                <a href="#events" class="hover:text-[#D4A017]">Події</a>
-                <a href="#chat" class="hover:text-[#D4A017]">Чат</a>
-                <a x-show="isAdmin" href="admin.html" class="text-red-400 animate-pulse">⚙️ Панель</a>
+            <div class="hidden md:flex gap-8 text-[11px] uppercase tracking-widest font-bold">
+                <a href="#villages" class="hover:text-gold-accent transition-all">Громада</a>
+                <a href="#vr-tour" class="hover:text-gold-accent transition-all">3D Тур</a>
+                <a href="#gallery" class="hover:text-gold-accent transition-all">Галерея</a>
+                <a href="#videos" class="hover:text-gold-accent transition-all">Архів</a>
+                <a x-show="isAdmin" href="admin.html" class="text-red-400 bg-red-400/10 px-3 py-1 rounded-full animate-pulse">⚙️ Панель</a>
             </div>
 
             <div class="flex items-center gap-4">
                 <template x-if="!user">
-                    <button @click="login()" class="bg-[#D4A017] text-[#061A12] px-6 py-2 rounded-full font-bold text-[10px] uppercase">Увійти</button>
+                    <button @click="login()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest">Увійти</button>
                 </template>
                 <template x-if="user">
-                    <img :src="user.photoURL" @click="auth.signOut()" class="w-10 h-10 rounded-full border-2 border-[#D4A017] cursor-pointer">
+                    <div @click="logout()" class="flex items-center gap-3 cursor-pointer group">
+                        <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-gold-accent group-hover:scale-110 transition-transform shadow-xl">
+                    </div>
                 </template>
             </div>
         </div>
     </nav>
 
     <!-- Hero -->
-    <section class="h-screen flex items-center justify-center relative overflow-hidden">
-        <div class="absolute inset-0 opacity-30">
-            <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e" class="w-full h-full object-cover scale-110 parallax-bg">
-            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#061A12]/80 to-[#061A12]"></div>
+    <section class="relative h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=90&w=2000" class="w-full h-full object-cover scale-110 opacity-30 parallax-bg">
+            <div class="absolute inset-0 bg-gradient-to-b from-forest-deep/10 via-forest-deep/60 to-forest-deep"></div>
         </div>
-        <div class="text-center z-10">
-            <h2 class="text-[#D4A017] font-serif italic text-3xl mb-4 hero-fade opacity-0">Поліська Спадщина</h2>
-            <h1 class="text-7xl md:text-[150px] font-serif font-bold text-white leading-none hero-fade opacity-0 tracking-tighter">Спадщина <br> <span class="text-[#D4A017] italic">Предків</span></h1>
+        <div class="relative z-10 text-center px-4">
+            <h2 class="text-gold-accent font-serif italic text-3xl mb-4 opacity-0 hero-fade">Поліська Спадщина</h2>
+            <h1 class="text-6xl md:text-[150px] font-serif font-bold mb-6 text-white opacity-0 hero-fade tracking-tighter leading-none">Спадщина <br> <span class="text-gold-accent italic">Предків</span></h1>
+            <div class="hero-fade opacity-0 mt-8">
+                <a href="#villages" class="border border-gold-accent/40 text-gold-accent px-12 py-5 rounded-full font-bold uppercase tracking-[0.4em] text-[10px] hover:bg-gold-accent hover:text-forest-deep transition-all backdrop-blur-md">До громади</a>
+            </div>
         </div>
     </section>
 
-    <!-- Villages -->
-    <section id="villages" class="py-40 bg-[#0A2F1F]">
-        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 lg:grid-cols-4 gap-10">
-            <template x-for="v in villages">
-                <a :href="'village.html?v=' + v.id" class="village-card group block h-[550px]">
-                    <div class="card-inner glass-card p-3 h-full flex flex-col transition-all">
-                        <div class="card-img-wrap h-2/3">
-                            <img :src="v.img" class="w-full h-full object-cover rounded-[1.5rem]">
+    <!-- Villages Section -->
+    <section id="villages" class="py-40 bg-forest-dark relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-6xl font-serif text-center mb-24 uppercase tracking-tighter">Наші Села</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
+                <template x-for="v in villagesList">
+                    <a :href="'village.html?v=' + v.id" class="village-card group block h-[550px]">
+                        <div class="card-inner glass-card p-3 h-full flex flex-col">
+                            <div class="h-2/3 overflow-hidden rounded-[2rem]">
+                                <img :src="v.img" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125">
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-3xl font-serif text-white mb-2" x-text="v.name"></h3>
+                                <p class="text-[11px] text-gray-400 leading-relaxed" x-text="v.desc"></p>
+                            </div>
                         </div>
-                        <div class="p-6">
-                            <h3 class="text-3xl font-serif text-white mb-2" x-text="v.name"></h3>
-                            <p class="text-[11px] text-gray-400" x-text="v.desc"></p>
+                    </a>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <!-- VR 360 PORTAL (NEW!) -->
+    <section id="vr-tour" class="py-32 bg-forest-deep relative overflow-hidden" x-show="panoramas.length">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+                <div class="max-w-xl">
+                    <span class="text-gold-accent uppercase font-black tracking-widest text-[10px]">Virtual Reality</span>
+                    <h2 class="text-5xl font-serif text-white mt-4 tracking-tighter">Віртуальна Подорож 360°</h2>
+                    <p class="text-gray-400 mt-4 text-sm">Оберіть локацію, щоб опинитися в самому центрі наших мальовничих краєвидів.</p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <template x-for="(pano, index) in panoramas">
+                        <button @click="loadPano(pano.url)" class="px-6 py-2 rounded-full border border-white/10 text-[10px] font-bold uppercase hover:bg-gold-accent hover:text-forest-deep transition-all" x-text="pano.name"></button>
+                    </template>
+                </div>
+            </div>
+            <div class="relative glass-card p-3 rounded-[3rem]">
+                <canvas id="pano-canvas"></canvas>
+                <div class="absolute bottom-10 left-10 pointer-events-none">
+                    <div class="flex items-center gap-3 bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
+                        <div class="w-2 h-2 bg-gold-accent rounded-full animate-ping"></div>
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Інтерактивний режим</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LIVE PHOTO GALLERY -->
+    <section id="gallery" class="py-32 bg-forest-dark" x-show="photos.length">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-5xl font-serif text-white mb-16 italic">Світлини Громади</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <template x-for="p in photos">
+                    <div class="aspect-square overflow-hidden rounded-2xl border border-white/5 group relative cursor-zoom-in">
+                        <img :src="p.url" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                            <p class="text-[9px] font-bold uppercase text-gold-accent" x-text="p.caption"></p>
                         </div>
                     </div>
-                </a>
-            </template>
+                </template>
+            </div>
         </div>
     </section>
 
-    <!-- Events Section -->
-    <section id="events" class="py-32 bg-[#061A12]">
-        <div class="max-w-4xl mx-auto px-6">
-            <h2 class="text-5xl font-serif mb-16 text-[#D4A017] text-center italic">Календар громади</h2>
-            <div class="space-y-6">
-                <template x-for="ev in events">
-                    <div class="glass-card p-6 rounded-[2rem] flex items-center gap-8">
-                        <div class="bg-[#D4A017]/10 p-4 rounded-2xl text-center min-w-[80px]">
-                            <span class="block text-3xl font-bold text-[#D4A017]" x-text="ev.day"></span>
-                            <span class="text-[10px] uppercase font-black text-gray-500" x-text="ev.month"></span>
+    <!-- VIDEO ARCHIVE -->
+    <section id="videos" class="py-32 bg-forest-deep" x-show="videos.length">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h2 class="text-5xl font-serif text-white mb-4 tracking-tighter uppercase">Відео-Архів</h2>
+            <p class="text-gold-accent text-xs font-bold uppercase tracking-widest mb-16">YouTube Хроніки та Shorts</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <template x-for="v in videos">
+                    <div class="glass-card p-3 rounded-[2.5rem] overflow-hidden group">
+                        <div class="aspect-video rounded-3xl overflow-hidden relative">
+                            <iframe class="w-full h-full" :src="'https://www.youtube.com/embed/' + v.ytId" frameborder="0" allowfullscreen></iframe>
                         </div>
-                        <div>
-                            <h4 class="text-xl font-bold text-white" x-text="ev.title"></h4>
-                            <p class="text-sm text-gray-400" x-text="ev.desc"></p>
+                        <div class="p-6 text-left">
+                            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1" x-text="v.village"></p>
+                            <h4 class="text-lg font-serif text-white group-hover:text-gold-accent transition-colors" x-text="v.title"></h4>
                         </div>
                     </div>
                 </template>
@@ -132,29 +212,97 @@
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('mainApp', () => ({
-                user: null, isAdmin: false, announcements: [], events: [],
-                villages: [
-                    {id:'prybytky', name:'Прибитки', desc:'Затишне поліське село.', img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=600'},
-                    {id:'sorokopen', name:'Сорокопень', desc:'Геологічний центр кряжу.', img:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600'},
-                    {id:'stari', name:'Старі Велідники', desc:'Хранителі прадавньої історії.', img:'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=600'},
-                    {id:'novi', name:'Нові Велідники', desc:'Молода енергія громади.', img:'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=600'}
+                user: null, isAdmin: false, announcements: [], photos: [], videos: [], panoramas: [],
+                villagesList: [
+                    {id:'prybytky', name:'Прибитки', desc:'Поліське село серед стародавніх лісів.', img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800'},
+                    {id:'sorokopen', name:'Сорокопень', desc:'Геологічний феномен на вершині кряжу.', img:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800'},
+                    {id:'stari', name:'Старі Велідники', desc:'Хранителі прадавньої шляхетської історії.', img:'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=800'},
+                    {id:'novi', name:'Нові Велідники', desc:'Енергія розвитку та віра в спільне майбутнє.', img:'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=800'}
                 ],
                 init() {
                     auth.onAuthStateChanged(u => {
                         this.user = u;
                         this.isAdmin = u && u.email === 'restend88@gmail.com';
                     });
+                    
+                    // Listeners for dynamic data
                     db.collection('announcements').orderBy('ts', 'desc').onSnapshot(s => this.announcements = s.docs.map(d => d.data()));
-                    db.collection('events').orderBy('date', 'asc').onSnapshot(s => this.events = s.docs.map(d => d.data()));
+                    db.collection('village_photos').orderBy('ts', 'desc').limit(15).onSnapshot(s => this.photos = s.docs.map(d => d.data()));
+                    db.collection('village_videos').orderBy('ts', 'desc').limit(6).onSnapshot(s => this.videos = s.docs.map(d => d.data()));
+                    db.collection('panoramas').orderBy('ts', 'desc').onSnapshot(s => {
+                        this.panoramas = s.docs.map(d => d.data());
+                        if(this.panoramas.length && !window.panoLoaded) {
+                            setTimeout(() => this.loadPano(this.panoramas[0].url), 1000);
+                            window.panoLoaded = true;
+                        }
+                    });
                 },
-                login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+                login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); },
+                logout() { auth.signOut().then(() => location.reload()); },
+                
+                loadPano(url) {
+                    if (window.updatePanoTexture) window.updatePanoTexture(url);
+                }
             }));
         });
+
+        // --- THREE.JS PANORAMA LOGIC ---
+        let scene, camera, renderer, sphere;
+        function initPano() {
+            const canvas = document.getElementById('pano-canvas');
+            if(!canvas) return;
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+            const geometry = new THREE.SphereGeometry(500, 60, 40);
+            geometry.scale(-1, 1, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x111111 });
+            sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            window.updatePanoTexture = (url) => {
+                new THREE.TextureLoader().load(url, (texture) => {
+                    sphere.material.map = texture;
+                    sphere.material.needsUpdate = true;
+                });
+            };
+
+            camera.position.set(0, 0, 0.1);
+            let lon = 0, lat = 0;
+            let isUserInteracting = false, onPointerDownPointerX = 0, onPointerDownPointerY = 0, onPointerDownLon = 0, onPointerDownLat = 0;
+
+            canvas.addEventListener('mousedown', (e) => {
+                isUserInteracting = true;
+                onPointerDownPointerX = e.clientX; onPointerDownPointerY = e.clientY;
+                onPointerDownLon = lon; onPointerDownLat = lat;
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (isUserInteracting) {
+                    lon = (onPointerDownPointerX - e.clientX) * 0.1 + onPointerDownLon;
+                    lat = (e.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
+                }
+            });
+            document.addEventListener('mouseup', () => { isUserInteracting = false; });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                lat = Math.max(-85, Math.min(85, lat));
+                const phi = THREE.MathUtils.degToRad(90 - lat);
+                const theta = THREE.MathUtils.degToRad(lon);
+                camera.target = new THREE.Vector3(500 * Math.sin(phi) * Math.cos(theta), 500 * Math.cos(phi), 500 * Math.sin(phi) * Math.sin(theta));
+                camera.lookAt(camera.target);
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
 
         gsap.registerPlugin(ScrollTrigger);
         window.addEventListener('load', () => {
             gsap.to('.hero-fade', { opacity: 1, y: 0, duration: 1.5, stagger: 0.4 });
-            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom top', scrub: true }, y: 200 });
+            gsap.to('.parallax-bg', { scrollTrigger: { trigger: 'body', start: 'top top', scrub: true }, y: 250 });
+            initPano();
         });
     </script>
 </body>
