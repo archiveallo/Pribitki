@@ -6,21 +6,21 @@
     <title>Село — Спадщина Полісся</title>
     
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     
-    <!-- Firebase SDK (Compat) -->
+    <!-- Swiper.js for Video Slider -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    
-    <!-- GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -29,177 +29,174 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        'forest-dark': '#0A2F1F',
-                        'forest-deep': '#061A12',
-                        'gold-accent': '#D4A017',
-                        'mist': 'rgba(255, 255, 255, 0.05)',
-                    },
-                    fontFamily: {
-                        serif: ['Playfair Display', 'serif'],
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                    }
+                    colors: { 'forest-dark': '#0A2F1F', 'forest-deep': '#061A12', 'gold-accent': '#D4A017', 'gold-bright': '#E8B923' },
+                    fontFamily: { serif: ['Cormorant Garamond', 'serif'], sans: ['Plus Jakarta Sans', 'sans-serif'] }
                 }
             }
         }
     </script>
 
     <style>
-        body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; }
-        .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); }
-        .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(212, 160, 23, 0.1); }
-        .text-glow { text-shadow: 0 0 20px rgba(212, 160, 23, 0.3); }
+        body { background-color: #061A12; color: #E2E8F0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .noise-bg { position: fixed; inset: 0; z-index: 50; opacity: 0.03; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+        .glass-card { background: rgba(17, 45, 34, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(212, 160, 23, 0.1); }
         
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #061A12; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #D4A017; border-radius: 10px; }
-
-        /* Drag-to-scroll ribbons */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .video-card {
-            flex: 0 0 280px;
-            aspect-ratio: 9/16;
-            border-radius: 24px;
-            overflow: hidden;
-            background: #000;
-            position: relative;
-        }
-
-        .lightbox-bg { background: rgba(6, 26, 18, 0.98); backdrop-filter: blur(20px); }
+        /* Swiper Controls */
+        .swiper-button-next, .swiper-button-prev { color: #D4A017 !important; transform: scale(0.7); }
+        
+        /* Image Lightbox Animation */
         [x-cloak] { display: none !important; }
+        
+        .hero-title { line-height: 0.8; }
+        
+        .scroll-reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+        .scroll-reveal.active { opacity: 1; transform: translateY(0); }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #D4A017; border-radius: 10px; }
     </style>
 </head>
-<body x-data="villageApp()" class="font-sans antialiased custom-scrollbar">
-
+<body x-data="villageApp()">
     <div class="noise-bg"></div>
 
-    <!-- LIGHTBOX (Відкриття фото на весь екран) -->
-    <div x-show="lightbox.open" 
-         x-cloak
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 scale-90"
-         x-transition:enter-end="opacity-100 scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         class="fixed inset-0 z-[1000] lightbox-bg flex items-center justify-center p-4"
-         @click.self="lightbox.open = false"
-         @keydown.escape.window="lightbox.open = false">
-        
-        <button @click="lightbox.open = false" class="absolute top-8 right-8 text-gold-accent hover:rotate-90 transition-transform duration-500 z-[1001]">
-            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-
-        <img :src="lightbox.img" class="max-h-[90vh] max-w-full rounded-xl shadow-2xl border border-gold-accent/20">
+    <!-- Lightbox for Photos -->
+    <div x-show="lightbox.open" x-cloak class="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4" @click="lightbox.open = false">
+        <button class="absolute top-10 right-10 text-white/50 hover:text-white text-5xl">&times;</button>
+        <img :src="lightbox.img" class="max-h-full max-w-full rounded-2xl shadow-2xl border border-white/10">
     </div>
 
     <!-- Navigation -->
-    <nav class="fixed w-full z-[100] px-6 py-4" id="main-nav">
-        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full">
-            <a href="index.html" class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-gold-accent rounded-full flex items-center justify-center text-forest-deep font-bold text-xs">МС</div>
-                <span class="text-xl font-serif font-bold text-gold-accent tracking-tighter uppercase">Моє Село</span>
+    <nav class="fixed w-full z-[100] px-6 py-8 transition-all duration-500">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-8 py-3 rounded-full shadow-2xl">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="w-8 h-8 bg-gold-accent rounded-full flex items-center justify-center text-forest-deep font-black text-xs group-hover:rotate-180 transition-transform duration-500">←</div>
+                <span class="text-xl font-serif font-bold text-gold-accent tracking-tighter uppercase">Громада</span>
             </a>
             
-            <div x-show="$store.auth.user" class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
                 <div class="text-right hidden sm:block">
-                    <p class="text-[10px] font-bold text-gold-accent uppercase" x-text="$store.auth.isAdmin ? 'Адміністратор' : 'Громада'"></p>
-                    <p class="text-[9px] text-gray-400" x-text="$store.auth.user.displayName"></p>
+                    <p class="text-[9px] font-black text-gold-accent uppercase" x-text="village.name"></p>
+                    <p class="text-[10px] text-gray-400">Цифровий літопис</p>
                 </div>
-                <img :src="$store.auth.user.photoURL" class="w-10 h-10 rounded-full border border-gold-accent shadow-lg">
+                <template x-if="user">
+                    <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-gold-accent shadow-lg">
+                </template>
             </div>
         </div>
     </nav>
 
-    <!-- Hero Section: Головне фото та історія -->
-    <section class="relative min-h-screen flex items-center justify-center pt-32 pb-20 overflow-hidden">
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
         <div class="absolute inset-0 z-0">
-            <img :src="village.heroImage" class="w-full h-full object-cover opacity-40 scale-105 parallax-bg" alt="Village Background">
+            <img :src="village.img" class="w-full h-full object-cover scale-110 opacity-40 parallax-bg">
             <div class="absolute inset-0 bg-gradient-to-b from-forest-deep/0 via-forest-deep/80 to-forest-deep"></div>
         </div>
 
-        <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
-            <h1 class="text-6xl md:text-9xl font-serif font-bold text-white text-glow mb-12 tracking-tighter" x-text="village.name">Село</h1>
+        <div class="relative z-10 text-center px-6 max-w-5xl">
+            <span class="text-gold-accent font-bold uppercase tracking-[0.5em] text-[10px] block mb-6 animate-pulse">Легенди Полісся</span>
+            <h1 class="text-7xl md:text-[160px] font-serif font-bold text-white hero-title tracking-tighter mb-12" x-text="village.name"></h1>
             
-            <!-- Картка історії -->
-            <div class="glass-card p-8 md:p-16 rounded-[40px] text-left relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-2 h-full bg-gold-accent"></div>
-                
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-3xl font-serif italic text-gold-accent">Наше Коріння</h2>
-                    <template x-if="$store.auth.isAdmin">
-                        <button @click="saveHistory()" class="bg-gold-accent text-forest-deep px-6 py-2 rounded-full font-bold text-xs uppercase hover:scale-105 transition">Зберегти зміни</button>
-                    </template>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20">
+                <div class="glass-card p-6 rounded-[2rem]">
+                    <span class="block text-2xl font-serif text-gold-accent" x-text="village.pop"></span>
+                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Мешканців</span>
                 </div>
-
-                <div class="text-lg md:text-2xl text-gray-200 leading-relaxed font-light" 
-                     :contenteditable="$store.auth.isAdmin" 
-                     id="history-text"
-                     x-text="village.history">
+                <div class="glass-card p-6 rounded-[2rem]">
+                    <span class="block text-2xl font-serif text-gold-accent" x-text="village.area"></span>
+                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Площа</span>
+                </div>
+                <div class="glass-card p-6 rounded-[2rem]">
+                    <span class="block text-2xl font-serif text-gold-accent" x-text="village.founded"></span>
+                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Заснування</span>
+                </div>
+                <div class="glass-card p-6 rounded-[2rem]">
+                    <span class="block text-2xl font-serif text-gold-accent">Жива</span>
+                    <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Історія</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Photo Gallery: Горизонтальна стрічка -->
-    <section class="py-32 bg-forest-dark/30">
-        <div class="max-w-7xl mx-auto px-6 mb-16 flex justify-between items-end">
-            <div>
-                <h2 class="text-4xl md:text-5xl font-serif text-white mb-4">Світлини Пам'яті</h2>
-                <div class="w-24 h-1 bg-gold-accent"></div>
+    <!-- History & Description -->
+    <section class="py-32 bg-forest-deep">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="scroll-reveal active">
+                <h2 class="text-4xl font-serif text-gold-accent italic mb-10 text-center">Про село</h2>
+                <div class="glass-card p-10 md:p-16 rounded-[3rem] relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-gold-accent/30"></div>
+                    <p class="text-xl md:text-2xl text-gray-200 leading-relaxed font-light first-letter:text-5xl first-letter:text-gold-accent first-letter:font-serif first-letter:mr-3" x-text="village.history"></p>
+                </div>
             </div>
-            <p class="text-gray-500 italic text-sm hidden md:block">Гортайте вбік, щоб побачити більше →</p>
         </div>
+    </section>
 
-        <div class="hide-scrollbar flex gap-8 overflow-x-auto px-[5%] pb-12 cursor-grab active:cursor-grabbing" id="gallery-ribbon">
-            <template x-for="(img, index) in village.gallery" :key="index">
-                <div class="flex-none w-[300px] md:w-[500px] h-[400px] md:h-[600px] rounded-[32px] overflow-hidden glass-card p-2 group relative cursor-pointer"
-                     @click="openLightbox(img)">
-                    <img :src="img" class="w-full h-full object-cover rounded-[24px] transition-transform duration-1000 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-forest-deep/20 group-hover:bg-transparent transition-colors duration-500"></div>
-                    <div class="absolute bottom-8 left-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div class="w-12 h-12 rounded-full bg-gold-accent flex items-center justify-center text-forest-deep">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" stroke-width="2"></path></svg>
+    <!-- Image Gallery (Village Specific) -->
+    <section class="py-32 bg-forest-dark" x-show="villagePhotos.length">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-end mb-16">
+                <div>
+                    <h2 class="text-5xl font-serif text-white tracking-tighter">Світлини Пам'яті</h2>
+                    <div class="w-20 h-1 bg-gold-accent mt-4"></div>
+                </div>
+                <p class="text-gray-500 italic text-sm">Галерея локації</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <template x-for="p in villagePhotos">
+                    <div class="aspect-[4/5] overflow-hidden rounded-[2rem] border border-white/5 relative group cursor-zoom-in shadow-2xl" @click="openPhoto(p.url)">
+                        <img :src="p.url" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                            <p class="text-xs font-bold text-gold-accent uppercase tracking-widest" x-text="p.caption"></p>
                         </div>
                     </div>
-                </div>
-            </template>
+                </template>
+            </div>
         </div>
     </section>
 
-    <!-- Video Reels: Вертикальна стрічка -->
-    <section class="py-32 bg-forest-deep">
-        <div class="max-w-7xl mx-auto px-6 mb-16 text-center">
-            <h2 class="text-4xl md:text-5xl font-serif text-white mb-4">Життя в Русі</h2>
-            <p class="text-gold-accent uppercase tracking-widest text-xs font-bold opacity-60">Відео-хроніки нашої громади</p>
-        </div>
-
-        <div class="hide-scrollbar flex gap-6 overflow-x-auto px-[5%] pb-10">
-            <template x-for="(vid, index) in village.videos" :key="index">
-                <div class="video-card glass-card p-1">
-                    <video loop muted playsinline @mouseover="$el.play()" @mouseleave="$el.pause()" class="w-full h-full object-cover rounded-[20px]">
-                        <source :src="vid" type="video/mp4">
-                    </video>
-                    <div class="absolute bottom-6 left-6 flex items-center gap-2 pointer-events-none">
-                        <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/70">Live Polissya</span>
-                    </div>
+    <!-- Video Archive (Village Specific - Slider Style) -->
+    <section class="py-32 bg-forest-deep overflow-hidden" x-show="villageVideos.length">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-5xl font-serif text-white mb-16 tracking-tighter">Відео-хроніки</h2>
+            
+            <div class="swiper villageVideoSwiper !overflow-visible">
+                <div class="swiper-wrapper">
+                    <template x-for="v in villageVideos">
+                        <div class="swiper-slide">
+                            <div class="glass-card p-2 rounded-[2.5rem] overflow-hidden group shadow-2xl transition-transform duration-500 hover:-translate-y-4">
+                                <div class="aspect-[9/16] rounded-[2rem] overflow-hidden relative">
+                                    <img :src="'https://img.youtube.com/vi/' + v.ytId + '/maxresdefault.jpg'" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors flex items-center justify-center">
+                                        <div class="w-16 h-16 bg-gold-accent rounded-full flex items-center justify-center text-forest-deep shadow-2xl scale-90 group-hover:scale-110 transition-transform">
+                                            <svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5v13l13-6.5-13-6.5z"/></svg>
+                                        </div>
+                                    </div>
+                                    <a :href="'https://www.youtube.com/watch?v=' + v.ytId" target="_blank" class="absolute inset-0 z-10"></a>
+                                </div>
+                                <div class="p-6">
+                                    <h4 class="text-sm font-bold text-white tracking-tight uppercase" x-text="v.title"></h4>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
-            </template>
+                <!-- Navigation -->
+                <div class="flex gap-4 mt-12 justify-center">
+                    <div class="swiper-prev cursor-pointer w-12 h-12 border border-gold-accent rounded-full flex items-center justify-center text-gold-accent hover:bg-gold-accent hover:text-forest-deep transition-all">←</div>
+                    <div class="swiper-next cursor-pointer w-12 h-12 border border-gold-accent rounded-full flex items-center justify-center text-gold-accent hover:bg-gold-accent hover:text-forest-deep transition-all">→</div>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="py-20 border-t border-mist text-center relative overflow-hidden">
-        <a href="index.html" class="inline-flex items-center gap-4 text-gold-accent group">
-            <span class="w-10 h-10 border border-gold-accent rounded-full flex items-center justify-center group-hover:bg-gold-accent group-hover:text-forest-deep transition-all">←</span>
-            <span class="font-serif italic text-xl">Повернутися до громади</span>
-        </a>
+    <footer class="py-20 border-t border-white/5 text-center">
+        <a href="index.html" class="inline-block border border-gold-accent/30 text-gold-accent px-10 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-gold-accent hover:text-forest-deep transition-all">Повернутись до головної</a>
+        <p class="text-[10px] text-gray-600 uppercase tracking-[0.5em] mt-12">Моє Село • Спадщина Полісся • 2024</p>
     </footer>
 
     <script>
-        // 1. Firebase Configuration (ЗАМІНИ НА СВОЇ КЛЮЧІ)
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBRJzUm5zYrsXLSGA7iGGoBZ6bblHnTONs",
             authDomain: "moe-selo-76a49.firebaseapp.com",
@@ -208,97 +205,88 @@
             messagingSenderId: "446551102286",
             appId: "1:446551102286:web:08ec3b9a8b3c966dcc441f"
         };
-
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // 2. Alpine.js Application Logic
+        // Village Static Data (Defaults if not in DB)
+        const VILLAGE_DATA = {
+            'prybytky': { name: 'Прибитки', pop: '150+', area: '2.5 км²', founded: 'XV ст.', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200', history: 'Прибитки — це серце нашої громади, де час уповільнює свій біг. Село, оточене прадавніми лісами Полісся, зберігає унікальні традиції бортництва та дерев’яного зодчества. Кожна хата тут має свою історію, а лісові стежки пам’ятають кроки багатьох поколінь нашого роду.' },
+            'sorokopen': { name: 'Сорокопень', pop: '220+', area: '0.8 км²', founded: '1569 р.', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200', history: 'Сорокопень гордо височіє на Словечансько-Овруцькому кряжі. Це місце геологічної магії, де видобувають рідкісний пірофіліт. Село славиться своїми краєвидами, що відкриваються з висоти кряжу, та незламним духом горян Полісся.' },
+            'stari': { name: 'Старі Велідники', pop: '85+', area: '1.2 км²', founded: 'XVI ст.', img: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=1200', history: 'Старі Велідники — шляхетське гніздо нашого краю. Тут кожен камінь дихає історією XVII століття та козацької слави. Це осередок духовності та прадавніх архівів, де зберігаються пам’ятки нашого родоводу.' },
+            'novi': { name: 'Нові Велідники', pop: '120+', area: '1.8 км²', founded: 'XIX ст.', img: 'https://images.unsplash.com/photo-1414438992182-69e404046f80?q=80&w=1200', history: 'Нові Велідники — це енергія майбутнього. Виникнувши як молоде розгалуження старого поселення, сьогодні село є центром культурного життя громади. Тут розвивається фермерство, а молодь активно відроджує народні обряди у сучасному ритмі.' }
+        };
+
         function villageApp() {
             return {
+                user: null,
                 villageId: new URLSearchParams(window.location.search).get('v') || 'prybytky',
-                village: {
-                    name: 'Завантаження...',
-                    history: 'Пошук літописів у архівах громади...',
-                    heroImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
-                    gallery: [],
-                    videos: []
-                },
+                village: { name: '', pop: '', area: '', founded: '', img: '', history: '' },
+                villagePhotos: [],
+                villageVideos: [],
                 lightbox: { open: false, img: '' },
 
                 init() {
-                    // Auth state
-                    auth.onAuthStateChanged(user => {
-                        Alpine.store('auth', {
-                            user: user,
-                            isAdmin: user && user.email === 'restend88@gmail.com'
-                        });
-                    });
+                    // Set basic data
+                    this.village = VILLAGE_DATA[this.villageId] || VILLAGE_DATA['prybytky'];
+                    
+                    auth.onAuthStateChanged(u => this.user = u);
 
-                    // Fetch Data
-                    db.collection('villages').doc(this.villageId).onSnapshot(doc => {
-                        if (doc.exists) {
-                            this.village = doc.data();
-                        } else {
-                            // Дані-заглушки, якщо бази ще немає
-                            this.village = {
-                                name: 'Прибитки',
-                                history: 'Тут бере початок наша історія. Між прадавніми лісами та Кряжем...',
-                                heroImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef',
-                                gallery: [
-                                    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b',
-                                    'https://images.unsplash.com/photo-1473448912268-2022ce9509d8',
-                                    'https://images.unsplash.com/photo-1414438992182-69e404046f80'
-                                ],
-                                videos: [
-                                    'https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4',
-                                    'https://assets.mixkit.co/videos/preview/mixkit-sunlight-shining-through-the-leaves-of-a-tree-534-large.mp4'
-                                ]
-                            };
-                        }
-                    });
+                    // Sync Village Photos
+                    db.collection('village_photos')
+                      .where('village', '==', this.villageId)
+                      .orderBy('ts', 'desc')
+                      .onSnapshot(s => {
+                          this.villagePhotos = s.docs.map(d => d.data());
+                      });
 
-                    this.initDragScroll();
+                    // Sync Village Videos
+                    db.collection('village_videos')
+                      .where('village', '==', this.villageId)
+                      .orderBy('ts', 'desc')
+                      .onSnapshot(s => {
+                          this.villageVideos = s.docs.map(d => d.data());
+                          this.$nextTick(() => this.initSwiper());
+                      });
                 },
 
-                openLightbox(img) {
-                    this.lightbox.img = img;
+                openPhoto(url) {
+                    this.lightbox.img = url;
                     this.lightbox.open = true;
-                    document.body.style.overflow = 'hidden';
                 },
 
-                saveHistory() {
-                    const text = document.getElementById('history-text').innerText;
-                    db.collection('villages').doc(this.villageId).update({
-                        history: text
-                    }).then(() => alert("Літопис оновлено успішно!"));
-                },
-
-                initDragScroll() {
-                    const containers = document.querySelectorAll('.hide-scrollbar');
-                    containers.forEach(slider => {
-                        let isDown = false, startX, scrollLeft;
-                        slider.addEventListener('mousedown', e => {
-                            isDown = true; startX = e.pageX - slider.offsetLeft; scrollLeft = slider.scrollLeft;
-                        });
-                        slider.addEventListener('mouseup', () => isDown = false);
-                        slider.addEventListener('mousemove', e => {
-                            if(!isDown) return;
-                            e.preventDefault();
-                            const x = e.pageX - slider.offsetLeft;
-                            const walk = (x - startX) * 2;
-                            slider.scrollLeft = scrollLeft - walk;
-                        });
+                initSwiper() {
+                    new Swiper(".villageVideoSwiper", {
+                        slidesPerView: 1.2,
+                        spaceBetween: 30,
+                        centeredSlides: false,
+                        navigation: {
+                            nextEl: ".swiper-next",
+                            prevEl: ".swiper-prev",
+                        },
+                        breakpoints: {
+                            640: { slidesPerView: 2.2 },
+                            1024: { slidesPerView: 3.5 },
+                            1440: { slidesPerView: 4.5 }
+                        }
                     });
                 }
             }
         }
 
-        // 3. GSAP Parallax
+        // GSAP Parallax
         gsap.registerPlugin(ScrollTrigger);
-        gsap.to('.parallax-bg', {
-            scrollTrigger: { trigger: 'body', start: 'top top', scrub: true },
-            y: 200
+        window.addEventListener('load', () => {
+            gsap.to('.parallax-bg', {
+                scrollTrigger: {
+                    trigger: 'body',
+                    start: 'top top',
+                    end: 'bottom top',
+                    scrub: true
+                },
+                y: 200,
+                scale: 1.2
+            });
         });
     </script>
 </body>
